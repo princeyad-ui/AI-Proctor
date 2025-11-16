@@ -5,6 +5,7 @@ import HomePage from "./pages/HomePage";
 import Features from "./pages/Features";
 import Contact from "./pages/Contact";
 import Login from "./pages/Login";
+import SignUp from "./pages/SignUp";
 import Footer from "./pages/Footer";
 
 const App = () => {
@@ -12,12 +13,13 @@ const App = () => {
     <Router>
       <NavBar />
       <Routes>
-          <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<HomePage />} />
         <Route path="/features" element={<Features />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<SignUp />} />
       </Routes>
-       <Footer /> 
+      <Footer />
     </Router>
   )
 }
