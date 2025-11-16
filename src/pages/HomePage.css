@@ -1,0 +1,62 @@
+/* HomePage.css - basic clean landing styles */
+
+:root {
+  --accent: #0073e6;
+  --muted: #6b7280;
+  --bg: #f7fafc;
+  --card: #ffffff;
+  --container-max: 1100px;
+}
+
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;color:#111;background:var(--bg);}
+
+.container{max-width:var(--container-max);margin:0 auto;padding:0 20px;}
+
+.hero{padding:64px 0;background: linear-gradient(180deg,#ffffff,#f3f8ff);}
+.hero-inner{display:flex;gap:24px;align-items:center;justify-content:space-between;}
+.hero-text{max-width:680px;}
+.hero-text h1{font-size:34px;margin:0 0 12px;color:#0b2447;}
+.hero-text p{margin:0 0 18px;color:var(--muted);font-size:16px;line-height:1.5;}
+.hero-ctas{display:flex;gap:12px;}
+.btn{display:inline-block;padding:10px 16px;border-radius:8px;text-decoration:none;font-weight:600;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-ghost{background:transparent;border:2px solid rgba(7,115,230,0.12);color:var(--accent);}
+
+.hero-visual{min-width:220px;display:flex;justify-content:center;}
+.visual-card{background:var(--card);padding:18px;border-radius:12px;box-shadow:0 10px 25px rgba(13,38,77,0.06);text-align:center;}
+.visual-card h3{margin:0 0 8px;color:#0b2447;}
+.visual-card p{margin:0;color:var(--muted);font-size:14px;}
+
+/* FEATURES */
+.features{padding:48px 0;}
+.features h2{margin:0 0 18px;font-size:24px;color:#0b2447;}
+.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;}
+.feature-card{background:var(--card);padding:16px;border-radius:10px;box-shadow:0 8px 20px rgba(10,20,40,0.04);}
+.feature-card h4{margin:0 0 8px;color:#063b6a;}
+.feature-card p{margin:0;color:var(--muted);font-size:14px;}
+
+/* HOW */
+.how{padding:36px 0;}
+.how h2{margin:0 0 10px;font-size:22px;color:#0b2447;}
+.how-list{margin:0;padding-left:18px;color:var(--muted);line-height:1.7;}
+
+/* CTA */
+.cta{padding:28px 0;}
+.cta-inner{background:linear-gradient(90deg,#eaf4ff,#ffffff);padding:22px;border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.cta-inner h3{margin:0;font-size:18px;color:#0b2447;}
+.cta-inner .btn{min-width:150px}
+
+/* CONTACT */
+.contact{padding:28px 0;color:var(--muted);}
+
+/* FOOTER */
+.site-footer{padding:18px 0;margin-top:18px;background:transparent;text-align:center;color:var(--muted);font-size:14px}
+
+/* RESPONSIVE */
+@media (max-width:880px){
+  .hero-inner{flex-direction:column;align-items:flex-start;}
+  .hero-visual{width:100%;order:2;}
+  .hero-text{order:1;}
+  .cta-inner{flex-direction:column;align-items:flex-start;}
+}

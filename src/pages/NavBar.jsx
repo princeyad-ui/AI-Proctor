@@ -7,10 +7,9 @@ const NavBar = () => {
   return (
      <nav className="navbar">
       
-      {/* Logo Section */}
-      <div className="logo">
+    <Link to="/" className="logo">
         AI-Proctor
-      </div>
+      </Link>
 
       {/* Menu */}
       <ul className="nav-links">
