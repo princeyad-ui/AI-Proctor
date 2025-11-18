@@ -15,8 +15,8 @@ const HomePage = () => {
               and generate instant exam reports.
             </p>
             <div className="hero-ctas">
-              <a href="#features" className="btn btn-primary">Get Started</a>
-              <a href="#how" className="btn btn-ghost">Learn More</a>
+              <a href="#features" className="btn1 btn-primary">Get Started</a>
+              <a href="#how" className="btn1 btn-ghost">Learn More</a>
             </div>
           </div>
           <div className="hero-visual">
@@ -66,7 +66,7 @@ const HomePage = () => {
       <section className="cta container">
         <div className="cta-inner">
           <h3>Ready to make exams cheating-free?</h3>
-          <a href="/login" className="btn btn-primary">Start Monitoring</a>
+          <a href="/login" className="btn1 btn-primary">Start Monitoring</a>
         </div>
       </section>
 

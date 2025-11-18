@@ -101,7 +101,7 @@ const Contact = () => {
           </label>
 
           <div className="form-row">
-            <button type="submit" className="btn btn-primary" disabled={status === "sending"}>
+            <button type="submit" className="btn1 btn-primary" disabled={status === "sending"}>
               {status === "sending" ? "Sending..." : "Send Message"}
             </button>
 
