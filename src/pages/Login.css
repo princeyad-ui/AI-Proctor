@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /* Page layout */
 .login-page {
   min-height: 100vh;
@@ -146,3 +147,113 @@
   .input-wrap { padding: 10px; }
   .sign-btn { padding: 14px; }
 }
+=======
+:root {
+	--accent: #0073e6;
+	--muted: #6b7280;
+	--card: #ffffff;
+	--shadow: rgba(10, 20, 40, 0.06);
+}
+
+/* Page wrapper */
+.login-page {
+	padding: 40px 0;
+	display: flex;
+	justify-content: center;
+}
+
+/* Card box */
+.login-card {
+	background: var(--card);
+	padding: 28px 32px;
+	border-radius: 10px;
+	box-shadow: 0 10px 25px var(--shadow);
+	max-width: 420px;
+	width: 100%;
+}
+
+.login-title {
+	margin: 0 0 8px;
+	font-size: 28px;
+	color: #0b2447;
+}
+
+.login-sub {
+	margin-bottom: 20px;
+}
+
+/* Form */
+.login-form {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+
+.login-form label {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	font-size: 14px;
+	color: #0b2447;
+}
+
+.login-form input {
+	padding: 10px 12px;
+	border-radius: 8px;
+	border: 1px solid #e6e9ee;
+	font-size: 15px;
+	outline: none;
+}
+
+.login-form input:focus {
+	border-color: var(--accent);
+	box-shadow: 0 8px 20px rgba(0, 115, 230, 0.06);
+}
+
+.forgot-link {
+	text-align: right;
+	color: var(--accent);
+	font-size: 14px;
+	text-decoration: none;
+	margin-top: -4px;
+}
+
+/* Button */
+.btn {
+	padding: 10px 16px;
+	border-radius: 8px;
+	font-weight: 600;
+	border: 0;
+	cursor: pointer;
+}
+
+.btn-primary {
+	background: var(--accent);
+	color: white;
+}
+
+/* Status messages */
+.status {
+	font-size: 14px;
+	margin-top: 4px;
+}
+
+.error {
+	color: #c0392b;
+}
+
+.success {
+	color: #16a34a;
+}
+
+.signup-text {
+	text-align: center;
+	margin-top: 10px;
+	color: var(--muted);
+}
+
+.signup-text a {
+	color: var(--accent);
+	text-decoration: none;
+}
+>>>>>>> aba3405d7df38e22b803edfe49f269eabe134d6e

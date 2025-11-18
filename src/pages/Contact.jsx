@@ -40,17 +40,17 @@ const Contact = () => {
 
           <div className="info-block">
             <h4>Support</h4>
-            <p><a href="mailto:hello@aiproctor.example">hello@aiproctor.example</a></p>
+            <p><a href="mailto:hello@aiproctor.example">6602426@gmail.com</a></p>
           </div>
 
           <div className="info-block">
             <h4>Office</h4>
-            <p>123, Tech Park, YourCity, YourCountry</p>
+            <p>CNN-322, Chandranagar, Tech Park, Bhilai, India</p>
           </div>
 
           <div className="info-block">
             <h4>Phone</h4>
-            <p>+1 (555) 123-4567</p>
+            <p>+91 9108578075</p>
           </div>
         </div>
 

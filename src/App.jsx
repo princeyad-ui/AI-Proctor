@@ -17,17 +17,20 @@ const App = () => {
     <Router>
       <NavBar />
       <Routes>
-          <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<HomePage />} />
         <Route path="/features" element={<Features />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
+<<<<<<< HEAD
         <Route path="/proctor" element={<Proctor />} />
         <Route path="/sessions" element={<Sessions />} />
          <Route path="/admindashboard" element={<AdminDashboard />} />
 
+=======
+>>>>>>> aba3405d7df38e22b803edfe49f269eabe134d6e
       </Routes>
-       <Footer /> 
+      <Footer />
     </Router>
   )
 }

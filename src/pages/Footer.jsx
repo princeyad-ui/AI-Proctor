@@ -11,7 +11,7 @@ const Footer = () => {
         <div className="footer-col">
           <h2 className="footer-logo">AI-Proctor</h2>
           <p className="footer-text">
-            AI-powered online exam monitoring that ensures fairness, 
+            AI-powered online exam monitoring that ensures fairness,
             security, and integrity across all digital assessments.
           </p>
         </div>
@@ -31,14 +31,14 @@ const Footer = () => {
         <div className="footer-col">
           <h3>Contact</h3>
           <ul>
-            <li>Email: hello@aiproctor.com</li>
-            <li>Phone: +1 (555) 123-4567</li>
+            <li>Email: 6602426@gmail.com</li>
+            <li>Phone: +91 9108578075</li>
             <li>Address: Tech Park, India</li>
           </ul>
         </div>
 
         {/* Social Icons */}
-      <div className="footer-col">
+        <div className="footer-col">
           <h3>Services</h3>
           <ul>
             <li>AI Proctoring</li>
