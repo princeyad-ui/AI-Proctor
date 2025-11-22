@@ -1,6 +1,8 @@
 import React from 'react'
+import { useNavigate } from "react-router-dom";
 import "./Features.css";
 const Features = () => {
+    const navigate = useNavigate();
   return (
    <div className="features-page container">
       <h1 className="feature-title">AI-Proctor Features</h1>
@@ -63,6 +65,12 @@ const Features = () => {
           <p>
             Generates a complete session report with timestamps, screenshots, and risk score.
           </p>
+        </div>
+        
+        <div> 
+           <button className="btn1" onClick={() => navigate("/proctor")}>
+      Start Demo
+    </button>
         </div>
       </div>
     </div>

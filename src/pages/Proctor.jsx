@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import * as faceapi from "face-api.js";
 
 /**
@@ -34,6 +35,7 @@ const AUDIO_COOLDOWN_MS = 10000;
 const TAB_COOLDOWN_MS = 5000;
 
 export default function Proctor() {
+    const navigate = useNavigate();
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const intervalRef = useRef(null);
@@ -571,8 +573,14 @@ export default function Proctor() {
   }, [running, sessionId]);
 
   return (
+    
     <div style={{ padding: 20 }}>
+       <div style={{ marginLeft:"1150px" , display:"flex", gap:"12px"}} >
+        <button className="btn1" onClick={() => navigate("/admindashboard")}>AdminDashBoard</button>
+       <button className="btn1" onClick={() => navigate("/sessions")}>Session</button>
+      </div >
       <h2>Live Proctor (Face + Object Detection)</h2>
+      
 
       <div style={{ display: "flex", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
         <div style={{ position: "relative" }}>
@@ -589,7 +597,7 @@ export default function Proctor() {
           ) : (
             <button onClick={handleStopProctor} style={{ padding: "10px 14px", marginBottom: 8 }}>Stop Proctoring</button>
           )}
-
+          
           <div style={{ marginTop: 12 }}>
             <button onClick={handleManualAlert} style={{ padding: "8px 12px", marginRight: 8 }}>Send Test Alert</button>
             <button onClick={() => { setDebugLogs([]); appendLog("Cleared logs"); }} style={{ padding: "8px 12px" }}>Clear Logs</button>
@@ -651,6 +659,7 @@ export default function Proctor() {
           }
         </div>
       </div>
+     
     </div>
   );
 }

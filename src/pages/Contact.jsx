@@ -1,32 +1,61 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
+import emailjs from "emailjs-com";
 import "./Contact.css";
 
 const Contact = () => {
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
-  const [status, setStatus] = useState(""); // "", "sending", "sent", "error"
+  const [status, setStatus] = useState(""); 
+  const [errorMsg, setErrorMsg] = useState("");
+  const formRef = useRef(null);
 
+  // FIXED: handleChange was missing earlier
   const handleChange = (e) => {
-    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Basic client-side validation
+    setErrorMsg("");
+
+    // validation
     if (!form.name.trim() || !form.email.trim() || !form.message.trim()) {
+      setErrorMsg("Please fill required fields.");
       setStatus("error");
+      setTimeout(() => setStatus(""), 3000);
       return;
     }
 
     setStatus("sending");
 
-    // Simulate sending — replace with real API call
-    setTimeout(() => {
-      console.log("Contact form submitted:", form);
-      setStatus("sent");
-      setForm({ name: "", email: "", subject: "", message: "" });
-      // reset status after a short while
-      setTimeout(() => setStatus(""), 3000);
-    }, 900);
+    const templateParams = {
+      name: form.name,
+      email: form.email,
+      subject: form.subject || "",
+      message: form.message,
+      to_email: "6602426@gmail.com"   // ⭐ REQUIRED: this fixes "recipient empty"
+    };
+
+    // ⭐ YOUR IDs (working & unchanged)
+    const SERVICE_ID = "service_3hq7cc6";
+    const TEMPLATE_ID = "template_s3jka6j";
+    const PUBLIC_KEY = "GPFs2nDjsWbx6yBMJ";
+
+    emailjs.send(SERVICE_ID, TEMPLATE_ID, templateParams, PUBLIC_KEY)
+      .then((res) => {
+        console.log("EmailJS Success:", res);
+        setStatus("sent");
+        setForm({ name: "", email: "", subject: "", message: "" });
+        setTimeout(() => setStatus(""), 3000);
+      })
+      .catch((err) => {
+        console.error("EmailJS Error:", err);
+        console.log("err.status:", err.status);
+        console.log("err.text:", err.text);
+        setErrorMsg(err.text || "Failed to send message.");
+        setStatus("error");
+        setTimeout(() => setStatus(""), 5000);
+      });
   };
 
   return (
@@ -35,12 +64,12 @@ const Contact = () => {
         <div className="contact-info">
           <h1>Contact Us</h1>
           <p className="muted">
-            Have questions or want a demo of AI-Proctor? Fill the form and our team will get back to you within 24 hours.
+            Have questions or want a demo? Fill the form and our team will get back to you.
           </p>
 
           <div className="info-block">
             <h4>Support</h4>
-            <p><a href="mailto:hello@aiproctor.example">6602426@gmail.com</a></p>
+            <p><a href="mailto:6602426@gmail.com">6602426@gmail.com</a></p>
           </div>
 
           <div className="info-block">
@@ -50,11 +79,11 @@ const Contact = () => {
 
           <div className="info-block">
             <h4>Phone</h4>
-            <p>+91 9108578075</p>
+            <p>+91 9128578075</p>
           </div>
         </div>
 
-        <form className="contact-form" onSubmit={handleSubmit} noValidate>
+        <form ref={formRef} className="contact-form" onSubmit={handleSubmit} noValidate>
           <label>
             <span>Name</span>
             <input
@@ -79,7 +108,7 @@ const Contact = () => {
           </label>
 
           <label>
-            <span>Subject (optional)</span>
+            <span>Subject</span>
             <input
               name="subject"
               value={form.subject}
@@ -106,7 +135,7 @@ const Contact = () => {
             </button>
 
             <div className="form-status">
-              {status === "error" && <span className="status error">Please fill required fields.</span>}
+              {status === "error" && <span className="status error">{errorMsg}</span>}
               {status === "sent" && <span className="status success">Thanks — message sent!</span>}
             </div>
           </div>
@@ -117,3 +146,8 @@ const Contact = () => {
 };
 
 export default Contact;
+
+
+
+
+

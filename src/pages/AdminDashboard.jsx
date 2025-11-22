@@ -10,11 +10,6 @@ const SERVER = "http://localhost:5000";
  * - Live alerts via SSE
  * - View session details (frames, events, audio)
  * - Download report link (uses /api/report/:sessionId)
- *
- * Usage: <AdminDashboard />
- *
- * NOTE: Add authorization headers if you use JWT:
- * fetch(url, { headers: { Authorization: `Bearer ${token}` }})
  */
 
 export default function AdminDashboard() {
@@ -29,7 +24,7 @@ export default function AdminDashboard() {
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 12;
 
-  // fetch sessions from server
+  // fetch sessions
   async function loadSessions() {
     setLoading(true);
     try {
@@ -48,15 +43,15 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     loadSessions();
-    // SSE for live events
+
+    // SSE for live events (if server supports /api/events/stream)
     try {
       const es = new EventSource(`${SERVER}/api/events/stream`);
       es.onmessage = (e) => {
         try {
           const payload = JSON.parse(e.data);
           setLiveAlerts(prev => [payload, ...prev].slice(0, 80));
-          // Optionally refresh sessions list or increment unread count
-          loadSessions(); // keep sessions state updated
+          loadSessions(); // refresh sessions
         } catch (err) {
           console.error("SSE parse", err);
         }
@@ -69,12 +64,13 @@ export default function AdminDashboard() {
     } catch (err) {
       console.warn("SSE not supported", err);
     }
+
     return () => {
       if (evtSourceRef.current) evtSourceRef.current.close();
     };
   }, []);
 
-  // start a new session (optionally pass studentId in body)
+  // start new session
   async function handleStartSession(studentId = null) {
     try {
       const res = await fetch(`${SERVER}/api/start-session`, {
@@ -93,7 +89,7 @@ export default function AdminDashboard() {
     }
   }
 
-  // stop session by sessionId
+  // stop session
   async function handleStopSession(sessionId) {
     try {
       const res = await fetch(`${SERVER}/api/end-session`, {
@@ -112,7 +108,7 @@ export default function AdminDashboard() {
     }
   }
 
-  // open session details modal (also fetch fresh events)
+  // open session details modal
   async function openSession(session) {
     setSelectedSession(session);
     try {
@@ -123,7 +119,6 @@ export default function AdminDashboard() {
         else if (Array.isArray(data)) setSelectedEvents(data);
         else setSelectedEvents(session.events || []);
       } else {
-        // fallback to session.events (maybe already present)
         setSelectedEvents(session.events || []);
       }
     } catch (err) {
@@ -135,6 +130,34 @@ export default function AdminDashboard() {
   function closeModal() {
     setSelectedSession(null);
     setSelectedEvents([]);
+  }
+
+  // helper: build image URL from evidence object
+  function servedUrl(ev) {
+    if (!ev) return null;
+
+    // 1) preferred: evidenceUrl from backend (e.g. "/evidence/<session>/<file>")
+    if (ev.evidenceUrl) {
+      return `${SERVER}${ev.evidenceUrl}`;
+    }
+
+    // 2) servedPath if server sends one
+    if (ev.servedPath) {
+      if (ev.servedPath.startsWith("http")) return ev.servedPath;
+      return `${SERVER}${ev.servedPath}`;
+    }
+
+    // 3) fallback: derive from filesystem path (handles Windows backslashes)
+    if (ev.path) {
+      const norm = ev.path.replace(/\\/g, "/");
+      const idx = norm.indexOf("/evidence/");
+      if (idx >= 0) {
+        const rel = norm.substring(idx); // "/evidence/..."
+        return `${SERVER}${rel}`;
+      }
+    }
+
+    return null;
   }
 
   // filtered & paginated sessions
@@ -151,34 +174,33 @@ export default function AdminDashboard() {
   });
 
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const pageSessions = filtered.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE);
-
-  // quick helper to convert evidence server path to accessible URL if not provided
-  function servedUrl(ev) {
-    if (!ev) return null;
-    if (ev.servedPath) return ev.servedPath;
-    if (ev.path && ev.path.includes("/evidence/")) {
-      // assume path like /.../evidence/<sessionId>/<file>
-      const idx = ev.path.indexOf("/evidence/");
-      const p = ev.path.substring(idx);
-      return `${SERVER}${p}`;
-    }
-    return null;
-  }
+  const pageSessions = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div className="admin-dashboard container">
       <div className="admin-header">
         <h1>Admin Dashboard — Proctor</h1>
         <div className="admin-controls">
-          <button className="btn" onClick={() => loadSessions()} disabled={loading}>{loading ? "Loading..." : "Refresh"}</button>
-          <button className="btn primary" onClick={() => handleStartSession(null)}>Start New Session</button>
+          <button className="btn" onClick={loadSessions} disabled={loading}>
+            {loading ? "Loading..." : "Refresh"}
+          </button>
+          <button className="btn primary" onClick={() => handleStartSession(null)}>
+            Start New Session
+          </button>
         </div>
       </div>
 
       <div className="admin-filters">
-        <input className="search" placeholder="Search session id / event / risk..." value={filterText} onChange={e=>{setFilterText(e.target.value); setPage(1);}} />
-        <select value={filterStatus} onChange={(e)=>{ setFilterStatus(e.target.value); setPage(1); }}>
+        <input
+          className="search"
+          placeholder="Search session id / event / risk..."
+          value={filterText}
+          onChange={e => { setFilterText(e.target.value); setPage(1); }}
+        />
+        <select
+          value={filterStatus}
+          onChange={e => { setFilterStatus(e.target.value); setPage(1); }}
+        >
           <option value="all">All</option>
           <option value="active">Active</option>
           <option value="ended">Ended</option>
@@ -186,53 +208,90 @@ export default function AdminDashboard() {
       </div>
 
       <div className="layout">
+        {/* LEFT - sessions list */}
         <div className="left">
           <div className="sessions-grid">
-            {pageSessions.length === 0 ? <div className="muted">No sessions</div> :
+            {pageSessions.length === 0 ? (
+              <div className="muted">No sessions</div>
+            ) : (
               pageSessions.map(sess => {
-                const latestFrame = (sess.evidence||[]).filter(ev => ev.type === "frame")[0];
+                const frames = (sess.evidence || []).filter(ev => ev.type === "frame");
+                const latestFrame = frames[frames.length - 1];
                 const thumbnail = latestFrame ? servedUrl(latestFrame) : null;
+
                 return (
                   <div className="session-card" key={sess.sessionId}>
                     <div className="card-top">
                       <div className="session-id">{sess.sessionId}</div>
                       <div className="risk">Risk: <strong>{sess.riskScore ?? 0}</strong></div>
                     </div>
+
                     <div className="meta">
-                      <div>Started: {new Date(sess.startedAt).toLocaleString()}</div>
+                      <div>Started: {sess.startedAt ? new Date(sess.startedAt).toLocaleString() : "-"}</div>
                       <div>Alerts: {(sess.events || []).length}</div>
                       <div>Status: {sess.endedAt ? "Ended" : "Running"}</div>
                     </div>
 
                     <div className="thumb-row">
-                      {thumbnail ? <img src={thumbnail} alt="thumb" className="thumb" /> : <div className="no-thumb">No image</div>}
+                      {thumbnail ? (
+                        <img src={thumbnail} alt="thumb" className="thumb" />
+                      ) : (
+                        <div className="no-thumb">No image</div>
+                      )}
+
                       <div className="card-actions">
-                        <button className="link-btn" onClick={()=> openSession(sess)}>View</button>
+                        <button className="link-btn" onClick={() => openSession(sess)}>View</button>
                         {!sess.endedAt ? (
-                          <button className="btn warn" onClick={()=> handleStopSession(sess.sessionId)}>Stop</button>
+                          <button className="btn warn" onClick={() => handleStopSession(sess.sessionId)}>
+                            Stop
+                          </button>
                         ) : (
-                          <button className="btn1" onClick={()=> handleStartSession(null)}>Restart</button>
+                          <button className="btn1" onClick={() => handleStartSession(null)}>
+                            Restart
+                          </button>
                         )}
-                        <a className="link-btn" href={`${SERVER}/api/report/${sess.sessionId}`} target="_blank" rel="noreferrer">Report</a>
+                        <a
+                          className="link-btn"
+                          href={`${SERVER}/api/report/${sess.sessionId}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Report
+                        </a>
                       </div>
                     </div>
                   </div>
                 );
               })
-            }
+            )}
           </div>
 
           <div className="pagination">
-            <button className="btn1" onClick={()=> setPage(p => Math.max(1, p-1))} disabled={page<=1}>Prev</button>
+            <button
+              className="btn1"
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page <= 1}
+            >
+              Prev
+            </button>
             <div>Page {page} / {pages}</div>
-            <button className="btn1" onClick={()=> setPage(p => Math.min(pages, p+1))} disabled={page>=pages}>Next</button>
+            <button
+              className="btn1"
+              onClick={() => setPage(p => Math.min(pages, p + 1))}
+              disabled={page >= pages}
+            >
+              Next
+            </button>
           </div>
         </div>
 
+        {/* RIGHT - live alerts */}
         <div className="right">
           <h3>Live Alerts</h3>
           <div className="live-list">
-            {liveAlerts.length === 0 ? <div className="muted">No live alerts</div> :
+            {liveAlerts.length === 0 ? (
+              <div className="muted">No live alerts</div>
+            ) : (
               liveAlerts.map((ev, idx) => (
                 <div key={idx} className="live-item">
                   <div className="ev-left">
@@ -241,11 +300,13 @@ export default function AdminDashboard() {
                   </div>
                   <div className="ev-right">
                     <div className="ev-session">{ev.sessionId}</div>
-                    <div className="ev-time">{new Date(ev.timestamp).toLocaleTimeString()}</div>
+                    <div className="ev-time">
+                      {ev.timestamp ? new Date(ev.timestamp).toLocaleTimeString() : ""}
+                    </div>
                   </div>
                 </div>
               ))
-            }
+            )}
           </div>
         </div>
       </div>
@@ -253,53 +314,96 @@ export default function AdminDashboard() {
       {/* Session details modal */}
       {selectedSession && (
         <div className="modal-backdrop" onClick={closeModal}>
-          <div className="modal" onClick={e=>e.stopPropagation()}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-left">
-              {/* show latest frame big */}
               {selectedSession.evidence && selectedSession.evidence.length > 0 ? (
-                <img src={servedUrl(selectedSession.evidence[selectedSession.evidence.length-1])} alt="frame" className="modal-img" />
-              ) : <div className="no-image-big">No frames</div>}
+                <img
+                  src={servedUrl(selectedSession.evidence[selectedSession.evidence.length - 1])}
+                  alt="frame"
+                  className="modal-img"
+                />
+              ) : (
+                <div className="no-image-big">No frames</div>
+              )}
             </div>
+
             <div className="modal-right">
               <h3>Session: {selectedSession.sessionId}</h3>
-              <div>Started: {new Date(selectedSession.startedAt).toLocaleString()}</div>
-              {selectedSession.endedAt && <div>Ended: {new Date(selectedSession.endedAt).toLocaleString()}</div>}
+              <div>Started: {selectedSession.startedAt ? new Date(selectedSession.startedAt).toLocaleString() : "-"}</div>
+              {selectedSession.endedAt && (
+                <div>Ended: {new Date(selectedSession.endedAt).toLocaleString()}</div>
+              )}
+
               <div style={{ marginTop: 8 }}>
-                <a className="link-btn" href={`${SERVER}/api/report/${selectedSession.sessionId}`} target="_blank" rel="noreferrer">Open Raw Report</a>
-                <button className="btn1" onClick={()=> downloadSessionZip(selectedSession.sessionId)} style={{ marginLeft: 8 }}>Download ZIP</button>
+                <a
+                  className="link-btn"
+                  href={`${SERVER}/api/report/${selectedSession.sessionId}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Open Raw Report
+                </a>
+                <button
+                  className="btn1"
+                  onClick={() => downloadSessionZip(selectedSession.sessionId)}
+                  style={{ marginLeft: 8 }}
+                >
+                  Download ZIP
+                </button>
               </div>
 
               <h4 style={{ marginTop: 12 }}>Events</h4>
               <div className="events-scroll">
-                {selectedEvents.length === 0 ? <div className="muted">No events</div> :
+                {selectedEvents.length === 0 ? (
+                  <div className="muted">No events</div>
+                ) : (
                   <ul className="events-list">
                     {selectedEvents.map(ev => (
                       <li key={ev.id ?? ev.timestamp}>
-                        <div className="ev-type">{ev.type} <span className="ev-severity">({ev.severity})</span></div>
+                        <div className="ev-type">
+                          {ev.type} <span className="ev-severity">({ev.severity})</span>
+                        </div>
                         <div className="ev-details">{ev.details}</div>
-                        <div className="ev-time">{new Date(ev.timestamp).toLocaleString()}</div>
-                        {ev.audioPath && <audio controls src={ev.audioPath} style={{ marginTop: 6 }} />}
-                        {ev.thumbnailUrl && <img src={ev.thumbnailUrl} alt="thumb" style={{ width:120, marginTop:6 }} />}
+                        <div className="ev-time">
+                          {ev.timestamp ? new Date(ev.timestamp).toLocaleString() : ""}
+                        </div>
+                        {ev.audioPath && (
+                          <audio controls src={ev.audioPath} style={{ marginTop: 6 }} />
+                        )}
+                        {ev.thumbnailUrl && (
+                          <img
+                            src={ev.thumbnailUrl}
+                            alt="thumb"
+                            style={{ width: 120, marginTop: 6 }}
+                          />
+                        )}
                       </li>
                     ))}
                   </ul>
-                }
+                )}
               </div>
 
-              <div style={{ marginTop: 10, display:"flex", gap:8, justifyContent:"flex-end" }}>
-                <button className="btn1" onClick={closeModal}>Close</button>
+              <div
+                style={{
+                  marginTop: 10,
+                  display: "flex",
+                  gap: 8,
+                  justifyContent: "flex-end"
+                }}
+              >
+                <button className="btn1" onClick={closeModal}>
+                  Close
+                </button>
               </div>
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 
-  // Download evidence zip helper (calls server endpoint if implemented)
+  // Download evidence zip helper (if server implements /api/sessions/:id/zip)
   async function downloadSessionZip(sessionId) {
-    // If server exposes /api/sessions/:id/zip return blob and trigger download
     try {
       const res = await fetch(`${SERVER}/api/sessions/${sessionId}/zip`);
       if (!res.ok) {

@@ -1,4 +1,4 @@
-import React from 'react'
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import NavBar from "./pages/NavBar";
 import HomePage from "./pages/HomePage";
@@ -10,6 +10,11 @@ import Footer from "./pages/Footer";
 import Proctor from "./pages/Proctor";
 import Sessions from "./pages/Sessions";
 import AdminDashboard from "./pages/AdminDashboard";
+import Profile from "./pages/Profile";
+import AdminExams from "./pages/AdminExams";
+import ExamEntry from "./pages/ExamEntry";
+import StudentProctor from "./pages/StudentProctor";
+
 
 
 const App = () => {
@@ -22,17 +27,18 @@ const App = () => {
         <Route path="/contact" element={<Contact />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
-<<<<<<< HEAD
         <Route path="/proctor" element={<Proctor />} />
         <Route path="/sessions" element={<Sessions />} />
-         <Route path="/admindashboard" element={<AdminDashboard />} />
+        <Route path="/admindashboard" element={<AdminDashboard />} />
 
-=======
->>>>>>> aba3405d7df38e22b803edfe49f269eabe134d6e
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/adminexams" element={<AdminExams />} />
+         <Route path="/exam/:code" element={<ExamEntry />} />
+           <Route path="/studentproctor" element={<StudentProctor />} />
       </Routes>
       <Footer />
     </Router>
-  )
-}
+  );
+};
 
-export default App
+export default App;
