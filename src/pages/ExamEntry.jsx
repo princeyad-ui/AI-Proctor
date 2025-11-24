@@ -1,17 +1,20 @@
 // src/pages/ExamEntry.jsx
 import React, { useEffect, useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { useParams } from "react-router-dom";
-import StudentProctor from "./StudentProctor"; // adjust path if needed
+import "./ExamEntry.css";
+import StudentProctor from "./StudentProctor";
 
 const API_BASE = "http://localhost:5000";
 
 export default function ExamEntry() {
+  const navigate = useNavigate();
   const { code } = useParams(); // /exam/:code
 
   const [exam, setExam] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const [step, setStep] = useState(1); // 1: details, 2: system, 3: instructions, 4: test
+  const [step, setStep] = useState(1); // 1 details, 2 system, 3 instructions, 4 test
   const [studentName, setStudentName] = useState("");
   const [studentEmail, setStudentEmail] = useState("");
 
@@ -33,7 +36,7 @@ export default function ExamEntry() {
   const micCheckAnimRef = useRef(null);
   const micCheckStartTimeRef = useRef(0);
 
-  // exam session from backend
+  // exam session
   const [examSession, setExamSession] = useState(null);
 
   // questions + answers + timer
@@ -43,9 +46,7 @@ export default function ExamEntry() {
   const [finished, setFinished] = useState(false);
   const timerRef = useRef(null);
 
-  // ─────────────────────────────────────
-  // 1) Load exam by linkCode
-  // ─────────────────────────────────────
+  // ───────────── 1. Load exam ─────────────
   useEffect(() => {
     async function loadExam() {
       try {
@@ -66,9 +67,7 @@ export default function ExamEntry() {
     loadExam();
   }, [code]);
 
-  // ─────────────────────────────────────
-  // 2) System checks
-  // ─────────────────────────────────────
+  // ───────────── 2. System checks ─────────────
   useEffect(() => {
     if (step === 2) {
       runSystemChecks();
@@ -77,6 +76,13 @@ export default function ExamEntry() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
+
+  // make sure camera/mic are stopped when component unmounts
+  useEffect(() => {
+    return () => {
+      cleanupMedia();
+    };
+  }, []);
 
   function cleanupMedia() {
     if (streamRef.current) {
@@ -207,7 +213,7 @@ export default function ExamEntry() {
         const bits = sizeBytes * 8;
         const mbps = bits / (durationSec * 1024 * 1024);
         setInternetSpeedMbps(mbps);
-        setInternetOk(mbps >= 0.3); // simple threshold
+        setInternetOk(mbps >= 0.3);
       } else {
         setInternetOk(true); // fallback
       }
@@ -219,9 +225,7 @@ export default function ExamEntry() {
     }
   }
 
-  // ─────────────────────────────────────
-  // 3) Steps navigation
-  // ─────────────────────────────────────
+  // ───────────── 3. Step navigation ─────────────
   function handleDetailsNext() {
     if (!studentName || !studentEmail) {
       alert("Please enter your name and email");
@@ -230,9 +234,7 @@ export default function ExamEntry() {
     setStep(2);
   }
 
-  // ─────────────────────────────────────
-  // 4) Start exam session (calls backend: POST /api/exams/:id/sessions)
-  // ─────────────────────────────────────
+  // ───────────── 4. Start exam session ─────────────
   async function handleStartTest() {
     try {
       const res = await fetch(`${API_BASE}/api/exams/${exam._id}/sessions`, {
@@ -241,7 +243,6 @@ export default function ExamEntry() {
         body: JSON.stringify({
           studentName,
           studentEmail,
-          // later we can add proctorSessionId here
         }),
       });
       const data = await res.json();
@@ -267,9 +268,7 @@ export default function ExamEntry() {
     }
   }
 
-  // ─────────────────────────────────────
-  // 5) Timer effect (auto submit on time over)
-  // ─────────────────────────────────────
+  // ───────────── 5. Timer ─────────────
   useEffect(() => {
     if (!examSession || step !== 4 || finished) {
       if (timerRef.current) {
@@ -304,9 +303,7 @@ export default function ExamEntry() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [examSession, step, finished, timeLeftSec]);
 
-  // ─────────────────────────────────────
-  // 6) Questions + answers
-  // ─────────────────────────────────────
+  // ───────────── 6. Questions / answers ─────────────
   const questions =
     exam && Array.isArray(exam.questions) && exam.questions.length > 0
       ? exam.questions
@@ -341,9 +338,27 @@ export default function ExamEntry() {
     setCurrentIndex((idx) => Math.min(totalQuestions - 1, idx + 1));
   }
 
-  // ─────────────────────────────────────
-  // 7) Finish exam (calls backend: POST /api/exam-sessions/:id/complete)
-  // ─────────────────────────────────────
+  // answered count for progress bar
+  const answeredCount = questions.reduce((count, q, idx) => {
+    const val = answers[idx];
+    if (Array.isArray(q.options) && q.options.length > 0) {
+      if (typeof val === "number") return count + 1;
+    } else if (val && String(val).trim() !== "") {
+      return count + 1;
+    }
+    return count;
+  }, 0);
+
+  // is current question answered?
+  let currentAnswered = false;
+  const currentVal = answers[currentIndex];
+  if (Array.isArray(currentQuestion.options) && currentQuestion.options.length > 0) {
+    currentAnswered = typeof currentVal === "number";
+  } else {
+    currentAnswered = !!(currentVal && String(currentVal).trim() !== "");
+  }
+
+  // ───────────── 7. Finish exam ─────────────
   async function handleFinishTest(autoByTimer = false) {
     if (!examSession || finished) return;
 
@@ -353,8 +368,9 @@ export default function ExamEntry() {
     }
 
     setFinished(true);
+    cleanupMedia(); // stop system-check camera/mic if still on
 
-    // simple score using correctIndex
+    // score (for backend)
     let score = 0;
     questions.forEach((q, idx) => {
       if (typeof q.correctIndex === "number") {
@@ -379,20 +395,14 @@ export default function ExamEntry() {
         }
       );
 
-      if (res.ok) {
+      if (!res.ok) {
         alert(
-          autoByTimer
-            ? "Time is over. Your test has been auto-submitted."
-            : "Test submitted successfully."
-        );
-      } else {
-        alert(
-          "Test finished (demo). Backend did not confirm submission (check /api/exam-sessions/:id/complete)."
+          "Test finished. Backend did not confirm submission (check /api/exam-sessions/:id/complete)."
         );
       }
     } catch (err) {
       console.error("finish test error", err);
-      alert("Test finished (demo). Error sending data to server.");
+      alert("Test finished. Error sending data to server.");
     }
   }
 
@@ -405,370 +415,257 @@ export default function ExamEntry() {
     return `${mm}:${ss}`;
   }
 
-  // ─────────────────────────────────────
-  // Render
-  // ─────────────────────────────────────
-  if (loading) return <div style={{ padding: 20 }}>Loading exam…</div>;
-  if (!exam) return <div style={{ padding: 20 }}>Exam not found</div>;
+  const progressPercent =
+    totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
+
+  // ───────────── Render ─────────────
+  if (loading) return <div className="exam-loading">Loading exam…</div>;
+  if (!exam) return <div className="exam-loading">Exam not found</div>;
 
   return (
-    <div style={{ padding: 24, maxWidth: 900, margin: "0 auto" }}>
-      <div style={{ marginBottom: 18 }}>
-        <h2 style={{ margin: 0 }}>{exam.title}</h2>
-        {exam.description && (
-          <p style={{ marginTop: 6, color: "#4b5563" }}>{exam.description}</p>
+    <div className="exam-page">
+      {/* Top header */}
+      <div className="exam-topbar">
+        <div>
+          <div className="exam-title">{exam.title}</div>
+          <div className="exam-candidate">
+            {studentName || examSession?.studentName || "Candidate"}
+          </div>
+        </div>
+
+        {examSession && (
+          <div className="exam-topbar-right">
+            <div className="exam-question-count">
+              Question {currentIndex + 1} of {totalQuestions}
+            </div>
+            <div className="exam-timer">
+              ⏱ Time Left:{" "}
+              <strong>{finished ? "00:00" : formatTime(timeLeftSec)}</strong>
+            </div>
+          </div>
         )}
       </div>
 
-      <div style={{ marginBottom: 16, fontSize: 14, color: "#6b7280" }}>
-        Step {step} of 4
-      </div>
+      {/* Progress bar */}
+      {examSession && (
+        <div className="exam-progress">
+          <div className="exam-progress-bar">
+            <div
+              className="exam-progress-fill"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+          <div className="exam-progress-meta">
+            {Math.round(progressPercent)}% Complete
+          </div>
+        </div>
+      )}
+
+      <div className="exam-step-indicator">Step {step} of 4</div>
 
       {/* STEP 1: Details */}
       {step === 1 && (
-        <div
-          style={{
-            padding: 16,
-            borderRadius: 10,
-            border: "1px solid #e5e7eb",
-            background: "#f9fafb",
-            maxWidth: 480,
-          }}
-        >
-          <h3 style={{ marginTop: 0 }}>Your Details</h3>
-          <p style={{ fontSize: 14, color: "#6b7280" }}>
-            Please enter your name and email. These will appear in the exam
-            report.
-          </p>
-          <label style={{ display: "block", marginTop: 8, fontSize: 14 }}>
-            Full Name
-          </label>
-          <input
-            value={studentName}
-            onChange={(e) => setStudentName(e.target.value)}
-            placeholder="Enter your full name"
-            style={{
-              width: "100%",
-              padding: 8,
-              borderRadius: 6,
-              border: "1px solid #d1d5db",
-              marginBottom: 10,
-            }}
-          />
-          <label style={{ display: "block", fontSize: 14 }}>
-            Email Address
-          </label>
-          <input
-            type="email"
-            value={studentEmail}
-            onChange={(e) => setStudentEmail(e.target.value)}
-            placeholder="Enter your email"
-            style={{
-              width: "100%",
-              padding: 8,
-              borderRadius: 6,
-              border: "1px solid #d1d5db",
-              marginBottom: 16,
-            }}
-          />
-          <button
-            onClick={handleDetailsNext}
-            style={{
-              padding: "8px 16px",
-              borderRadius: 8,
-              border: "none",
-              background: "#2563eb",
-              color: "white",
-              cursor: "pointer",
-              fontWeight: 500,
-            }}
-          >
-            Next: System Check
-          </button>
+        <div className="exam-step-wrapper">
+          <div className="exam-step-card exam-step-narrow">
+            <h3 className="exam-step-title">Your Details</h3>
+            <p className="exam-step-text">
+              Please enter your name and email. These will appear in the exam
+              report.
+            </p>
+
+            <label className="exam-label">Full Name</label>
+            <input
+              className="exam-input"
+              value={studentName}
+              onChange={(e) => setStudentName(e.targetValue || e.target.value)}
+              placeholder="Enter your full name"
+            />
+
+            <label className="exam-label">Email Address</label>
+            <input
+              className="exam-input"
+              type="email"
+              value={studentEmail}
+              onChange={(e) => setStudentEmail(e.target.value)}
+              placeholder="Enter your email"
+            />
+
+            <button
+              className="exam-btn-primary exam-step-btn"
+              onClick={handleDetailsNext}
+            >
+              Next: System Check
+            </button>
+          </div>
         </div>
       )}
 
       {/* STEP 2: System checklist */}
       {step === 2 && (
-        <div
-          style={{
-            padding: 16,
-            borderRadius: 10,
-            border: "1px solid #e5e7eb",
-            background: "#f9fafb",
-          }}
-        >
-          <h3 style={{ marginTop: 0 }}>System Checklist</h3>
-          <p style={{ fontSize: 14, color: "#6b7280" }}>
-            We are automatically checking your camera, microphone and internet.
-          </p>
+        <div className="exam-step-wrapper">
+          <div className="exam-step-card">
+            <h3 className="exam-step-title">System Checklist</h3>
+            <p className="exam-step-text">
+              We are automatically checking your camera, microphone and
+              internet.
+            </p>
 
-          <div style={{ marginTop: 10, marginBottom: 12 }}>
-            <video
-              ref={videoRef}
-              autoPlay
-              muted
-              playsInline
-              style={{
-                width: 260,
-                height: 180,
-                background: "#000",
-                borderRadius: 8,
-                border: "1px solid #d1d5db",
-              }}
-            />
-            <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>
-              Camera preview during check.
-            </div>
-          </div>
-
-          <ul style={{ listStyle: "none", paddingLeft: 0, marginTop: 10 }}>
-            <li style={{ marginBottom: 8 }}>
-              <StatusItem
-                label="Camera is enabled and clearly shows my face."
-                ok={cameraOk}
-                checking={!cameraOk}
+            <div className="exam-video-wrapper">
+              <video
+                ref={videoRef}
+                autoPlay
+                muted
+                playsInline
+                className="exam-video-preview"
               />
-            </li>
-            <li style={{ marginBottom: 8 }}>
-              <StatusItem
-                label="Microphone is enabled and working."
-                ok={micOk}
-                checking={micChecking}
-              />
-              <div
-                style={{ fontSize: 12, color: "#6b7280", marginLeft: 24 }}
-              >
-                {micStatusText}
+              <div className="exam-video-note">
+                Camera preview during check.
               </div>
-            </li>
-            <li style={{ marginBottom: 8 }}>
-              <StatusItem
-                label="Internet connection is stable for the exam duration."
-                ok={internetOk}
-                checking={internetChecking}
-              />
-              {internetSpeedMbps != null && (
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: "#6b7280",
-                    marginLeft: 24,
-                  }}
-                >
-                  Measured speed: {internetSpeedMbps.toFixed(2)} Mbps
-                </div>
-              )}
-            </li>
-          </ul>
+            </div>
 
-          <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
-            <button
-              onClick={() => setStep(1)}
-              style={{
-                padding: "6px 12px",
-                borderRadius: 6,
-                border: "1px solid #d1d5db",
-                background: "white",
-                cursor: "pointer",
-                fontSize: 14,
-              }}
-            >
-              Back
-            </button>
-            <button
-              onClick={runSystemChecks}
-              style={{
-                padding: "6px 12px",
-                borderRadius: 6,
-                border: "1px solid #d1d5db",
-                background: "#f3f4f6",
-                cursor: "pointer",
-                fontSize: 14,
-              }}
-            >
-              Re-run checks
-            </button>
-            <button
-              onClick={() => setStep(3)}
-              disabled={!(cameraOk && micOk && internetOk)}
-              style={{
-                padding: "8px 16px",
-                borderRadius: 8,
-                border: "none",
-                background:
-                  cameraOk && micOk && internetOk ? "#2563eb" : "#9ca3af",
-                color: "white",
-                cursor:
-                  cameraOk && micOk && internetOk ? "pointer" : "not-allowed",
-                fontWeight: 500,
-                marginLeft: "auto",
-              }}
-            >
-              Continue to Instructions
-            </button>
+            <ul className="exam-status-list">
+              <li>
+                <StatusItem
+                  label="Camera is enabled and clearly shows my face."
+                  ok={cameraOk}
+                  checking={!cameraOk}
+                />
+              </li>
+              <li>
+                <StatusItem
+                  label="Microphone is enabled and working."
+                  ok={micOk}
+                  checking={micChecking}
+                />
+                <div className="exam-status-note">{micStatusText}</div>
+              </li>
+              <li>
+                <StatusItem
+                  label="Internet connection is stable for the exam duration."
+                  ok={internetOk}
+                  checking={internetChecking}
+                />
+                {internetSpeedMbps != null && (
+                  <div className="exam-status-note">
+                    Measured speed: {internetSpeedMbps.toFixed(2)} Mbps
+                  </div>
+                )}
+              </li>
+            </ul>
+
+            <div className="exam-actions-row">
+              <button
+                className="exam-btn-ghost"
+                onClick={() => setStep(1)}
+              >
+                Back
+              </button>
+              <button
+                className="exam-btn-secondary"
+                onClick={runSystemChecks}
+              >
+                Re-run checks
+              </button>
+              <button
+                className="exam-btn-primary exam-actions-right"
+                onClick={() => setStep(3)}
+                disabled={!(cameraOk && micOk && internetOk)}
+              >
+                Continue to Instructions
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {/* STEP 3: Instructions */}
       {step === 3 && (
-        <div
-          style={{
-            padding: 16,
-            borderRadius: 10,
-            border: "1px solid #e5e7eb",
-            background: "#f9fafb",
-          }}
-        >
-          <h3 style={{ marginTop: 0 }}>Exam Instructions</h3>
-          <div style={{ fontSize: 14, color: "#374151" }}>
-            <p>
-              <strong>Total Questions:</strong>{" "}
-              {exam.totalQuestions != null ? exam.totalQuestions : "-"}
-            </p>
-            <p>
-              <strong>Passing Marks:</strong>{" "}
-              {exam.passingMarks != null ? exam.passingMarks : "-"}
-            </p>
-            <p>
-              <strong>Duration:</strong>{" "}
-              {exam.durationMinutes != null
-                ? `${exam.durationMinutes} minutes`
-                : "-"}
-            </p>
-          </div>
+        <div className="exam-step-wrapper">
+          <div className="exam-step-card">
+            <h3 className="exam-step-title">Exam Instructions</h3>
 
-          <ul style={{ marginTop: 10, fontSize: 14, color: "#4b5563" }}>
-            <li>Do not move out of the camera frame during the exam.</li>
-            <li>Do not use mobile phones or extra devices.</li>
-            <li>Your camera and behavior are monitored using AI proctoring.</li>
-          </ul>
+            <div className="exam-info-block">
+              <p>
+                <strong>Total Questions:</strong>{" "}
+                {exam.totalQuestions != null ? exam.totalQuestions : "-"}
+              </p>
+              <p>
+                <strong>Passing Marks:</strong>{" "}
+                {exam.passingMarks != null ? exam.passingMarks : "-"}
+              </p>
+              <p>
+                <strong>Duration:</strong>{" "}
+                {exam.durationMinutes != null
+                  ? `${exam.durationMinutes} minutes`
+                  : "-"}
+              </p>
+            </div>
 
-          <div style={{ marginTop: 12 }}>
-            <button
-              onClick={() => setStep(2)}
-              style={{
-                padding: "6px 12px",
-                borderRadius: 6,
-                border: "1px solid #d1d5db",
-                background: "white",
-                cursor: "pointer",
-                marginRight: 8,
-                fontSize: 14,
-              }}
-            >
-              Back
-            </button>
-            <button
-              onClick={handleStartTest}
-              style={{
-                padding: "8px 18px",
-                borderRadius: 8,
-                border: "none",
-                background: "#16a34a",
-                color: "white",
-                cursor: "pointer",
-                fontWeight: 500,
-              }}
-            >
-              Start Test
-            </button>
+            <ul className="exam-instruction-list">
+              <li>Do not move out of the camera frame during the exam.</li>
+              <li>Do not use mobile phones or extra devices.</li>
+              <li>
+                Your camera and behavior are monitored using AI proctoring.
+              </li>
+            </ul>
+
+            <div className="exam-actions-row">
+              <button
+                className="exam-btn-ghost"
+                onClick={() => setStep(2)}
+              >
+                Back
+              </button>
+              <button
+                className="exam-btn-primary exam-step-btn"
+                onClick={handleStartTest}
+              >
+                Start Test
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* STEP 4: Test + Proctor */}
+      {/* STEP 4: Test + background proctoring */}
       {step === 4 && examSession && (
-        <div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 8,
-            }}
-          >
-            <div style={{ fontSize: 14, color: "#4b5563" }}>
-              Student: <strong>{examSession.studentName}</strong> (
-              {examSession.studentEmail})
-              <br />
-              Exam: <strong>{exam.title}</strong>
-            </div>
-            <div
-              style={{
-                padding: "6px 12px",
-                borderRadius: 999,
-                border: "1px solid #e5e7eb",
-                background: finished ? "#fee2e2" : "#ecfdf3",
-                fontSize: 14,
-              }}
-            >
-              ⏱ Time Left:{" "}
-              <strong>{finished ? "00:00" : formatTime(timeLeftSec)}</strong>
-            </div>
-          </div>
+        <div className="exam-test-wrapper">
+          <div className="exam-test-inner">
+            {/* Small AI Proctor pill (snapshots + audio in background) */}
+            {!finished && <StudentProctor />}
 
-          <div
-            style={{
-              marginTop: 12,
-              display: "flex",
-              gap: 16,
-              alignItems: "flex-start",
-              flexWrap: "wrap",
-            }}
-          >
-            {/* Questions panel */}
-            <div
-              style={{
-                flex: 2,
-                minWidth: 260,
-                padding: 16,
-                borderRadius: 10,
-                border: "1px solid #e5e7eb",
-                background: "white",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: 8,
-                }}
-              >
-                <h4 style={{ margin: 0 }}>
-                  Question {currentIndex + 1} of {totalQuestions}
-                </h4>
-                {finished && (
-                  <span style={{ fontSize: 13, color: "#dc2626" }}>
-                    Test submitted
-                  </span>
-                )}
+            <div className="exam-question-card">
+              <div className="exam-question-header">
+                <div className="exam-question-title">
+                  Question {currentIndex + 1}
+                </div>
+                <div className="exam-question-timer">
+                  {finished ? (
+                    <span className="exam-submitted-text">Submitted</span>
+                  ) : (
+                    <>
+                      Time Left:{" "}
+                      <strong>{formatTime(timeLeftSec)}</strong>
+                    </>
+                  )}
+                </div>
               </div>
 
-              <p style={{ fontSize: 15, color: "#111827" }}>
+              <div className="exam-question-text">
                 {currentQuestion.text || currentQuestion.questionText}
-              </p>
+              </div>
 
               {Array.isArray(currentQuestion.options) &&
               currentQuestion.options.length > 0 ? (
-                <div style={{ marginTop: 8 }}>
+                <div className="exam-options">
                   {currentQuestion.options.map((opt, idx) => (
                     <label
                       key={idx}
-                      style={{
-                        display: "block",
-                        padding: "6px 8px",
-                        borderRadius: 6,
-                        border: "1px solid #e5e7eb",
-                        marginBottom: 6,
-                        cursor: finished ? "default" : "pointer",
-                        background:
-                          answers[currentIndex] === idx
-                            ? "#eff6ff"
-                            : "white",
-                      }}
+                      className={
+                        answers[currentIndex] === idx
+                          ? "exam-option exam-option-selected"
+                          : "exam-option"
+                      }
                     >
                       <input
                         type="radio"
@@ -777,110 +674,59 @@ export default function ExamEntry() {
                         disabled={finished}
                         checked={answers[currentIndex] === idx}
                         onChange={() => handleAnswerChange(idx)}
-                        style={{ marginRight: 8 }}
                       />
-                      {opt}
+                      <span>{opt}</span>
                     </label>
                   ))}
                 </div>
               ) : (
                 <textarea
+                  className="exam-textarea"
                   disabled={finished}
                   value={answers[currentIndex] || ""}
                   onChange={(e) => handleAnswerChange(e.target.value)}
                   placeholder="Type your answer here"
-                  style={{
-                    width: "100%",
-                    minHeight: 120,
-                    marginTop: 8,
-                    padding: 8,
-                    borderRadius: 8,
-                    border: "1px solid #d1d5db",
-                    fontSize: 14,
-                  }}
                 />
               )}
 
-              <div
-                style={{
-                  marginTop: 16,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: 8,
-                }}
-              >
-                <button
-                  onClick={goPrev}
-                  disabled={currentIndex === 0 || finished}
-                  style={{
-                    padding: "6px 12px",
-                    borderRadius: 6,
-                    border: "1px solid #d1d5db",
-                    background: "white",
-                    cursor:
-                      currentIndex === 0 || finished
-                        ? "not-allowed"
-                        : "pointer",
-                    fontSize: 14,
-                  }}
-                >
-                  ⬅ Previous
-                </button>
-                <button
-                  onClick={goNext}
-                  disabled={
-                    currentIndex === totalQuestions - 1 || finished
-                  }
-                  style={{
-                    padding: "6px 12px",
-                    borderRadius: 6,
-                    border: "1px solid #d1d5db",
-                    background: "white",
-                    cursor:
-                      currentIndex === totalQuestions - 1 || finished
-                        ? "not-allowed"
-                        : "pointer",
-                    fontSize: 14,
-                  }}
-                >
-                  Next ➡
-                </button>
-                <button
-                  onClick={() => handleFinishTest(false)}
-                  disabled={finished}
-                  style={{
-                    padding: "6px 16px",
-                    borderRadius: 8,
-                    border: "none",
-                    background: "#dc2626",
-                    color: "white",
-                    cursor: finished ? "not-allowed" : "pointer",
-                    fontWeight: 500,
-                    marginLeft: "auto",
-                  }}
-                >
-                  Finish Test
-                </button>
-              </div>
-            </div>
+              <div className="exam-test-actions">
+                <div className="exam-test-actions-left">
+                  <button
+                    className="exam-btn-ghost"
+                    onClick={goPrev}
+                    disabled={currentIndex === 0 || finished}
+                  >
+                    Previous
+                  </button>
+                  <button
+                    className="exam-btn-ghost"
+                    onClick={goNext}
+                    disabled={
+                      currentIndex === totalQuestions - 1 ||
+                      finished ||
+                      !currentAnswered
+                    }
+                  >
+                    Next
+                  </button>
+                </div>
 
-            {/* Proctor panel */}
-            <div
-              style={{
-                flex: 1,
-                minWidth: 260,
-                padding: 12,
-                borderRadius: 10,
-                border: "1px solid #e5e7eb",
-                background: "#f9fafb",
-              }}
-            >
-              <h4 style={{ marginTop: 0 }}>Proctoring</h4>
-              <p style={{ fontSize: 13, color: "#6b7280" }}>
-                Your camera is monitored using AI proctoring. Do not close this
-                panel during the exam.
-              </p>
-              <StudentProctor />
+               <button
+  className="exam-btn-primary exam-test-finish"
+  onClick={() => {
+    handleFinishTest(false);
+    navigate("/thankyou", {
+      state: {
+        studentName,
+        examTitle: exam?.title,
+      },
+    });
+  }}
+  disabled={finished || !currentAnswered}
+>
+  Finish Test
+</button>
+              </div>
             </div>
           </div>
         </div>
@@ -889,7 +735,7 @@ export default function ExamEntry() {
   );
 }
 
-// helper component for checklist rows
+// status row (step 2)
 function StatusItem({ label, ok, checking }) {
   let icon = "⏳";
   let color = "#6b7280";
@@ -903,9 +749,12 @@ function StatusItem({ label, ok, checking }) {
   }
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-      <span style={{ fontSize: 16 }}>{icon}</span>
-      <span style={{ fontSize: 14, color }}>{label}</span>
+    <div className="exam-status-item">
+      <span className="exam-status-icon" style={{ color }}>
+        {icon}</span>
+      <span className="exam-status-label" style={{ color }}>
+        {label}
+      </span>
     </div>
   );
 }

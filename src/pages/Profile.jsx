@@ -107,12 +107,19 @@ export default function Profile() {
         <hr style={{ margin: "16px 0", borderColor: "#e5e7eb" }} />
 
         <div className="profile-actions">
-          <Link to="/admin-exams" className="primary-btn">
+          <Link to="/adminexams" className="primary-btn">
             Conduct / Schedule Exams
           </Link>
-          <Link to="/admin-dashboard" className="secondary-btn">
+
+          {/* NEW: View results button */}
+          <Link to="/adminresultlist" className="secondary-btn">
+            View Exam Results
+          </Link>
+
+          <Link to="/admindashboard" className="secondary-btn">
             View Proctoring Dashboard
           </Link>
+
           <button className="danger-btn" onClick={handleLogout}>
             Logout
           </button>

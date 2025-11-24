@@ -1,0 +1,43 @@
+/* Center the whole page */
+.send-email-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+
+/* Back button aligned to top-left */
+.back-btn {
+  align-self: flex-start;
+  margin-bottom: 15px;
+  color: white;
+  background:#2563eb;
+  border: none;
+}
+
+/* STOP the default hover from overwriting it */
+.back-btn:hover {
+  background: #2563eb; /* slightly darker blue */
+  color: white !important; /* force white text */
+}
+
+
+/* Panel centered and clean */
+.send-email-panel {
+  width: 100%;
+  max-width: 600px;
+  margin-top: 20px;
+  padding: 25px;
+  box-sizing: border-box;
+}
+
+/* Error message centered */
+.center-error {
+  max-width: 600px;
+  text-align: center;
+}
+
+/* Form spacing tweaks */
+.send-email-panel .form-vertical {
+  gap: 10px;
+}

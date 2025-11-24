@@ -14,7 +14,10 @@ import Profile from "./pages/Profile";
 import AdminExams from "./pages/AdminExams";
 import ExamEntry from "./pages/ExamEntry";
 import StudentProctor from "./pages/StudentProctor";
-
+import SendExamEmail from "./pages/SendExamEmail";
+import ThankYou from "./pages/ThankYou";
+import AdminResultList from "./pages/AdminResultList";
+import AdminSessionResult from "./pages/AdminSessionResult";
 
 
 const App = () => {
@@ -35,6 +38,21 @@ const App = () => {
         <Route path="/adminexams" element={<AdminExams />} />
          <Route path="/exam/:code" element={<ExamEntry />} />
            <Route path="/studentproctor" element={<StudentProctor />} />
+           <Route path="/sendexamemail" element={<SendExamEmail />} />
+           <Route path="/thankyou" element={<ThankYou />} />
+           <Route path="/adminresultlist" element={<AdminResultList />} />
+           <Route path="/admin/result/:sessionId" element={<AdminSessionResult />} />
+         
+           
+
+          <Route/>
+  
+
+ 
+  
+
+
+  
       </Routes>
       <Footer />
     </Router>

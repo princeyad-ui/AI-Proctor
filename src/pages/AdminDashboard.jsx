@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef ,  } from "react";
 import "./AdminDashboard.css";
+import { useNavigate } from "react-router-dom";
 
 const SERVER = "http://localhost:5000";
 
@@ -13,6 +14,7 @@ const SERVER = "http://localhost:5000";
  */
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedSession, setSelectedSession] = useState(null);
@@ -184,8 +186,8 @@ export default function AdminDashboard() {
           <button className="btn" onClick={loadSessions} disabled={loading}>
             {loading ? "Loading..." : "Refresh"}
           </button>
-          <button className="btn primary" onClick={() => handleStartSession(null)}>
-            Start New Session
+          <button className="btn primary" onClick={() => navigate("/profile")}>
+            Profile
           </button>
         </div>
       </div>

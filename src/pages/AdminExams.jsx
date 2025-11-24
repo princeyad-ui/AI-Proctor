@@ -1,66 +1,87 @@
-// src/pages/AdminExams.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import "./AdminExams.css";
 
-const API_BASE = "http://localhost:5000";
+const SERVER = "http://localhost:5000";
 
 export default function AdminExams() {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [totalQuestions, setTotalQuestions] = useState("");
-  const [passingMarks, setPassingMarks] = useState("");
-  const [durationMinutes, setDurationMinutes] = useState("");
   const [exams, setExams] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  // create exam
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [durationMinutes, setDurationMinutes] = useState(30);
+  const [passingMarks, setPassingMarks] = useState(0);
+
+  // selected exam + questions
+  const [selectedExam, setSelectedExam] = useState(null);
+  const [questions, setQuestions] = useState([]);
 
   const navigate = useNavigate();
 
-  useEffect(() => {
-    loadExams();
-  }, []);
+  function getToken() {
+    return localStorage.getItem("token") || "";
+  }
 
+  // ───────────────────────────
+  // LOAD EXAMS
+  // ───────────────────────────
   async function loadExams() {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login");
-      return;
-    }
-    setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/exams`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const data = await res.json();
-      if (data.success) {
-        setExams(data.exams || []);
-      } else {
-        alert(data.message || "Failed to load exams");
+      setLoading(true);
+      setError("");
+
+      const token = getToken();
+      if (!token) {
+        navigate("/login");
+        return;
       }
+
+      const res = await fetch(`${SERVER}/api/exams`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "Failed to load exams");
+      }
+
+      setExams(data.exams || []);
     } catch (err) {
-      console.error(err);
-      alert("Error loading exams");
+      console.error("loadExams error", err);
+      setError(err.message || "Failed to load exams");
     } finally {
       setLoading(false);
     }
   }
 
-  async function handleCreate(e) {
-    e.preventDefault();
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login");
-      return;
-    }
+  useEffect(() => {
+    loadExams();
+  }, []);
 
-    if (!title) {
-      alert("Please enter a title");
+  // ───────────────────────────
+  // CREATE EXAM
+  // ───────────────────────────
+  async function handleCreateExam(e) {
+    e.preventDefault();
+    setError("");
+
+    if (!title.trim()) {
+      setError("Title is required");
       return;
     }
 
     try {
-      const res = await fetch(`${API_BASE}/api/exams`, {
+      const token = getToken();
+      if (!token) {
+        navigate("/login");
+        return;
+      }
+
+      const res = await fetch(`${SERVER}/api/exams`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -69,288 +90,457 @@ export default function AdminExams() {
         body: JSON.stringify({
           title,
           description,
-          totalQuestions: totalQuestions ? Number(totalQuestions) : undefined,
-          passingMarks: passingMarks ? Number(passingMarks) : undefined,
-          durationMinutes: durationMinutes ? Number(durationMinutes) : undefined,
+          durationMinutes: Number(durationMinutes) || 30,
+          passingMarks: Number(passingMarks) || 0,
         }),
       });
 
       const data = await res.json();
-      if (data.success) {
-        alert("Exam created");
-        setTitle("");
-        setDescription("");
-        setTotalQuestions("");
-        setPassingMarks("");
-        setDurationMinutes("");
-        loadExams();
-      } else {
-        alert(data.message || "Failed to create exam");
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "Failed to create exam");
       }
+
+      // Reset form
+      setTitle("");
+      setDescription("");
+      setDurationMinutes(30);
+      setPassingMarks(0);
+
+      // reload + select this exam
+      await loadExams();
+      setSelectedExam(data.exam);
+      setQuestions(data.exam.questions || []);
     } catch (err) {
-      console.error(err);
-      alert("Error creating exam");
+      console.error("create exam error", err);
+      setError(err.message || "Failed to create exam");
     }
   }
 
-  function examLink(exam) {
-    // link students will open; adjust port if your frontend runs on different port
-    return `${window.location.origin}/exam/${exam.linkCode}`;
+  // ───────────────────────────
+  // DELETE EXAM
+  // ───────────────────────────
+  async function handleDeleteExam(examId) {
+    const confirmDel = window.confirm(
+      "Are you sure you want to delete this exam?"
+    );
+    if (!confirmDel) return;
+
+    try {
+      setError("");
+      const token = getToken();
+      if (!token) {
+        navigate("/login");
+        return;
+      }
+
+      const res = await fetch(`${SERVER}/api/exams/${examId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "Failed to delete exam");
+      }
+
+      // Remove from local list
+      setExams((prev) => prev.filter((ex) => ex._id !== examId));
+
+      // If we deleted the selected exam, clear right panel
+      if (selectedExam && selectedExam._id === examId) {
+        setSelectedExam(null);
+        setQuestions([]);
+      }
+
+      alert("Exam deleted");
+    } catch (err) {
+      console.error("delete exam error", err);
+      setError(err.message || "Failed to delete exam");
+    }
   }
 
-  function copyLink(link) {
-    navigator.clipboard
-      .writeText(link)
-      .then(() => alert("Link copied to clipboard"))
-      .catch(() => alert("Failed to copy link"));
+  // ───────────────────────────
+  // SELECT EXAM
+  // ───────────────────────────
+  function handleSelectExam(exam) {
+    setSelectedExam(exam);
+    setQuestions(
+      exam.questions && exam.questions.length
+        ? exam.questions
+        : [
+            {
+              text: "",
+              options: ["", "", "", ""],
+              correctIndex: 0,
+            },
+          ]
+    );
   }
+
+  // ───────────────────────────
+  // QUESTION EDITOR FUNCTIONS
+  // ───────────────────────────
+
+  function updateQuestionText(index, value) {
+    setQuestions((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], text: value };
+      return next;
+    });
+  }
+
+  function updateOptionText(qIndex, optIndex, value) {
+    setQuestions((prev) => {
+      const next = [...prev];
+      const q = { ...next[qIndex] };
+      const opts = [...(q.options || ["", "", "", ""])];
+      opts[optIndex] = value;
+      q.options = opts;
+      next[qIndex] = q;
+      return next;
+    });
+  }
+
+  function updateCorrectIndex(qIndex, value) {
+    setQuestions((prev) => {
+      const next = [...prev];
+      next[qIndex] = { ...next[qIndex], correctIndex: Number(value) };
+      return next;
+    });
+  }
+
+  function handleAddQuestion() {
+    setQuestions((prev) => [
+      ...prev,
+      {
+        text: "",
+        options: ["", "", "", ""],
+        correctIndex: 0,
+      },
+    ]);
+  }
+
+  function handleRemoveQuestion(index) {
+    setQuestions((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  // ───────────────────────────
+  // SAVE QUESTIONS
+  // ───────────────────────────
+  async function handleSaveQuestions() {
+    if (!selectedExam) return;
+
+    // Validation
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      if (!q.text.trim()) {
+        setError(`Question ${i + 1} text is required`);
+        return;
+      }
+      if (!q.options || q.options.length < 2) {
+        setError(`Question ${i + 1} needs at least 2 options`);
+        return;
+      }
+      if (
+        q.correctIndex == null ||
+        q.correctIndex < 0 ||
+        q.correctIndex >= q.options.length
+      ) {
+        setError(`Question ${i + 1}: correct option index is invalid`);
+        return;
+      }
+    }
+
+    try {
+      const token = getToken();
+      if (!token) {
+        navigate("/login");
+        return;
+      }
+
+      const res = await fetch(
+        `${SERVER}/api/exams/${selectedExam._id}/questions`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ questions }),
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "Failed to save questions");
+      }
+
+      setSelectedExam(data.exam);
+      setQuestions(data.exam.questions || []);
+      alert("Questions saved successfully");
+      loadExams();
+    } catch (err) {
+      console.error("save questions error", err);
+      setError(err.message || "Failed to save questions");
+    }
+  }
+
+  const examLink =
+    selectedExam && selectedExam.linkCode
+      ? `${window.location.origin}/exam/${selectedExam.linkCode}`
+      : null;
+
+  // ───────────────────────────
+  // RENDER UI
+  // ───────────────────────────
 
   return (
-    <div style={{ padding: 24 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-        <h2>Conduct Exam (Admin)</h2>
+    <div className="admin-exams-page">
+      {/* Header + link to email sender page */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 12,
+          marginBottom: 8,
+        }}
+      >
+        <h1 className="admin-exams-title">Conduct / Schedule Exams</h1>
+
         <button
-          onClick={() => navigate("/profile")}
-          style={{
-            padding: "6px 12px",
-            borderRadius: 6,
-            border: "1px solid #e5e7eb",
-            background: "#f9fafb",
-            cursor: "pointer",
-          }}
+          className="secondary-btn"
+          onClick={() => navigate("/sendexamemail")}
         >
-          Back to Profile
+          Open Email Sender Page
         </button>
       </div>
 
-      {/* Create Exam Form */}
-      <form
-        onSubmit={handleCreate}
-        style={{
-          marginTop: 16,
-          maxWidth: 640,
-          padding: 16,
-          borderRadius: 10,
-          border: "1px solid #e5e7eb",
-          background: "#f9fafb",
-        }}
-      >
-        <h3 style={{ marginTop: 0 }}>New Exam</h3>
+      {error && <div className="admin-error">{error}</div>}
 
-        <div style={{ marginBottom: 10 }}>
-          <label style={{ display: "block", fontSize: 14, marginBottom: 4 }}>
-            Title *
-          </label>
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="AI Proctored Midterm"
-            style={{
-              width: "100%",
-              padding: 8,
-              borderRadius: 6,
-              border: "1px solid #d1d5db",
-            }}
-          />
-        </div>
+      <div className="admin-exams-layout">
+        {/* LEFT COLUMN */}
+        <div className="admin-exams-left">
+          {/* CREATE EXAM */}
+          <div className="panel">
+            <h2 className="panel-title">Create New Exam</h2>
 
-        <div style={{ marginBottom: 10 }}>
-          <label style={{ display: "block", fontSize: 14, marginBottom: 4 }}>
-            Description
-          </label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Short description or instructions for students..."
-            rows={3}
-            style={{
-              width: "100%",
-              padding: 8,
-              borderRadius: 6,
-              border: "1px solid #d1d5db",
-              resize: "vertical",
-            }}
-          />
-        </div>
+            <form onSubmit={handleCreateExam} className="form-vertical">
+              <label className="field-label">
+                Title <span className="req">*</span>
+              </label>
+              <input
+                className="input-field"
+                placeholder="e.g. DBMS Mid Term"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
 
-        <div style={{ display: "flex", gap: 12, marginBottom: 10, flexWrap: "wrap" }}>
-          <div>
-            <label style={{ display: "block", fontSize: 14, marginBottom: 4 }}>
-              Total Questions
-            </label>
-            <input
-              type="number"
-              value={totalQuestions}
-              onChange={(e) => setTotalQuestions(e.target.value)}
-              placeholder="e.g. 20"
-              style={{
-                width: 140,
-                padding: 8,
-                borderRadius: 6,
-                border: "1px solid #d1d5db",
-              }}
-            />
-          </div>
-          <div>
-            <label style={{ display: "block", fontSize: 14, marginBottom: 4 }}>
-              Passing Marks
-            </label>
-            <input
-              type="number"
-              value={passingMarks}
-              onChange={(e) => setPassingMarks(e.target.value)}
-              placeholder="e.g. 10"
-              style={{
-                width: 140,
-                padding: 8,
-                borderRadius: 6,
-                border: "1px solid #d1d5db",
-              }}
-            />
-          </div>
-          <div>
-            <label style={{ display: "block", fontSize: 14, marginBottom: 4 }}>
-              Duration (minutes)
-            </label>
-            <input
-              type="number"
-              value={durationMinutes}
-              onChange={(e) => setDurationMinutes(e.target.value)}
-              placeholder="e.g. 30"
-              style={{
-                width: 160,
-                padding: 8,
-                borderRadius: 6,
-                border: "1px solid #d1d5db",
-              }}
-            />
-          </div>
-        </div>
+              <label className="field-label">Description</label>
+              <textarea
+                className="textarea-field"
+                placeholder="Short description for students"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
 
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            marginTop: 6,
-            padding: "8px 16px",
-            borderRadius: 8,
-            border: "none",
-            background: "#2563eb",
-            color: "white",
-            cursor: "pointer",
-            fontWeight: 500,
-          }}
-        >
-          {loading ? "Creating..." : "Create Exam"}
-        </button>
-      </form>
-
-      {/* Existing Exams List */}
-      <h3 style={{ marginTop: 24 }}>Your Exams</h3>
-      {exams.length === 0 ? (
-        <div style={{ color: "#6b7280" }}>No exams created yet.</div>
-      ) : (
-        <div
-          style={{
-            marginTop: 8,
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-            gap: 12,
-          }}
-        >
-          {exams.map((ex) => {
-            const link = examLink(ex);
-            return (
-              <div
-                key={ex._id}
-                style={{
-                  padding: 12,
-                  borderRadius: 10,
-                  border: "1px solid #e5e7eb",
-                  background: "white",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 6,
-                }}
-              >
-                <div style={{ fontWeight: 600 }}>{ex.title}</div>
-                {ex.description && (
-                  <div
-                    style={{
-                      fontSize: 13,
-                      color: "#4b5563",
-                      maxHeight: 40,
-                      overflow: "hidden",
-                    }}
-                  >
-                    {ex.description}
-                  </div>
-                )}
-                <div style={{ fontSize: 13, color: "#6b7280" }}>
-                  Questions: {ex.totalQuestions ?? "-"} | Passing:{" "}
-                  {ex.passingMarks ?? "-"} | Duration:{" "}
-                  {ex.durationMinutes ?? "-"} min
-                </div>
-                <div style={{ fontSize: 12, color: "#6b7280" }}>
-                  Created:{" "}
-                  {ex.createdAt
-                    ? new Date(ex.createdAt).toLocaleString()
-                    : "-"}
+              <div className="two-cols">
+                <div>
+                  <label className="field-label">Duration (minutes)</label>
+                  <input
+                    type="number"
+                    className="input-field"
+                    min="5"
+                    value={durationMinutes}
+                    onChange={(e) => setDurationMinutes(e.target.value)}
+                  />
                 </div>
 
-                <div
-                  style={{
-                    marginTop: 4,
-                    padding: 6,
-                    borderRadius: 6,
-                    background: "#f9fafb",
-                    fontSize: 12,
-                    wordBreak: "break-all",
-                  }}
-                >
-                  Exam Link:{" "}
-                  <a href={link} target="_blank" rel="noreferrer">
-                    {link}
-                  </a>
-                </div>
-
-                <div style={{ marginTop: 6, display: "flex", gap: 8 }}>
-                  <button
-                    type="button"
-                    onClick={() => copyLink(link)}
-                    style={{
-                      padding: "4px 10px",
-                      borderRadius: 6,
-                      border: "1px solid #d1d5db",
-                      background: "#f3f4f6",
-                      fontSize: 12,
-                      cursor: "pointer",
-                    }}
-                  >
-                    Copy Link
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/admin/exams/${ex._id}/sessions`)}
-                    style={{
-                      padding: "4px 10px",
-                      borderRadius: 6,
-                      border: "none",
-                      background: "#10b981",
-                      color: "white",
-                      fontSize: 12,
-                      cursor: "pointer",
-                    }}
-                  >
-                    View Sessions
-                  </button>
+                <div>
+                  <label className="field-label">Passing Marks</label>
+                  <input
+                    type="number"
+                    className="input-field"
+                    min="0"
+                    value={passingMarks}
+                    onChange={(e) => setPassingMarks(e.target.value)}
+                  />
                 </div>
               </div>
-            );
-          })}
+
+              <button
+                type="submit"
+                className="primary-btn full"
+                disabled={loading}
+              >
+                {loading ? "Saving..." : "Create Exam"}
+              </button>
+            </form>
+          </div>
+
+          {/* EXAMS LIST */}
+          <div className="panel">
+            <div className="panel-header-row">
+              <h2 className="panel-title">Existing Exams</h2>
+              <button className="secondary-btn" onClick={loadExams}>
+                Refresh
+              </button>
+            </div>
+
+            {exams.length === 0 ? (
+              <div className="muted">No exams created yet.</div>
+            ) : (
+              <ul className="exam-list">
+                {exams.map((ex) => (
+                  <li
+                    key={ex._id}
+                    className={
+                      selectedExam && selectedExam._id === ex._id
+                        ? "exam-list-item selected"
+                        : "exam-list-item"
+                    }
+                    onClick={() => handleSelectExam(ex)}
+                  >
+                    <div className="exam-list-main">
+                      <div className="exam-title">{ex.title}</div>
+                      <div className="exam-meta">
+                        {ex.totalQuestions || 0} questions •{" "}
+                        {ex.durationMinutes || 30} min
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="small-danger-btn"
+                      onClick={(e) => {
+                        e.stopPropagation(); // prevent selecting exam
+                        handleDeleteExam(ex._id);
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
-      )}
+
+        {/* RIGHT COLUMN */}
+        <div className="admin-exams-right">
+          {!selectedExam ? (
+            <div className="panel">
+              <h2 className="panel-title">Question Builder</h2>
+              <div className="muted">
+                Select an exam on the left or create a new one to add
+                questions.
+              </div>
+            </div>
+          ) : (
+            <div className="panel">
+              <div className="panel-header-row">
+                <div>
+                  <h2 className="panel-title">
+                    Questions — {selectedExam.title}
+                  </h2>
+
+                  {examLink && (
+                    <div className="exam-link">
+                      Student link:{" "}
+                      <a href={examLink} target="_blank" rel="noreferrer">
+                        {examLink}
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="questions-scroll">
+                {questions.map((q, qi) => (
+                  <div key={qi} className="question-card">
+                    <div className="question-header">
+                      <div className="q-number">Q{qi + 1}</div>
+                      <button
+                        type="button"
+                        className="small-danger-btn"
+                        onClick={() => handleRemoveQuestion(qi)}
+                      >
+                        Remove
+                      </button>
+                    </div>
+
+                    <label className="field-label">Question text</label>
+                    <textarea
+                      className="textarea-field"
+                      placeholder="Enter question here"
+                      value={q.text}
+                      onChange={(e) =>
+                        updateQuestionText(qi, e.target.value)
+                      }
+                    />
+
+                    <label className="field-label">Options</label>
+                    <div className="options-grid">
+                      {q.options.map((opt, oi) => (
+                        <div key={oi} className="option-row">
+                          <span className="opt-label">
+                            {String.fromCharCode(65 + oi)}.
+                          </span>
+                          <input
+                            className="input-field"
+                            placeholder={`Option ${oi + 1}`}
+                            value={opt}
+                            onChange={(e) =>
+                              updateOptionText(qi, oi, e.target.value)
+                            }
+                          />
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="correct-row">
+                      <label className="field-label">
+                        Correct Option
+                      </label>
+                      <select
+                        value={q.correctIndex}
+                        onChange={(e) =>
+                          updateCorrectIndex(qi, e.target.value)
+                        }
+                      >
+                        {q.options.map((_, oi) => (
+                          <option key={oi} value={oi}>
+                            {String.fromCharCode(65 + oi)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="question-actions">
+                <button
+                  type="button"
+                  className="secondary-btn"
+                  onClick={handleAddQuestion}
+                >
+                  + Add Question
+                </button>
+                <button
+                  type="button"
+                  className="primary-btn"
+                  onClick={handleSaveQuestions}
+                >
+                  Save Questions
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -516,6 +516,32 @@ app.get("/api/exams/:id", authMiddleware, async (req, res) => {
   }
 });
 
+// 🔴 Delete exam (admin)
+app.delete("/api/exams/:id", authMiddleware, async (req, res) => {
+  try {
+    const exam = await Exam.findByIdAndDelete(req.params.id);
+
+    if (!exam) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Exam not found" });
+    }
+
+    // Optional: also delete related ExamSession documents if you want.
+    // await ExamSession.deleteMany({ examId: exam._id });
+
+    return res.json({
+      success: true,
+      message: "Exam deleted",
+    });
+  } catch (err) {
+    console.error("DELETE /api/exams/:id error", err);
+    return res
+      .status(500)
+      .json({ success: false, message: "Server error deleting exam" });
+  }
+});
+
 // Update questions for an exam (admin)
 app.put("/api/exams/:id/questions", authMiddleware, async (req, res) => {
   try {
@@ -634,6 +660,22 @@ app.get("/api/exam-sessions", authMiddleware, async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
+// Get a single exam session (admin view result)
+app.get("/api/exam-sessions/:id", authMiddleware, async (req, res) => {
+  try {
+    const session = await ExamSession.findById(req.params.id).populate("examId");
+    if (!session) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Session not found" });
+    }
+    res.json({ success: true, session });
+  } catch (err) {
+    console.error("GET /api/exam-sessions/:id error", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
 
 // ─────────────────────────────────────
 // Send exam invite to student (email)
@@ -682,6 +724,3 @@ app.post("/api/exams/:id/send-invite", authMiddleware, async (req, res) => {
 // ─────────────────────────────────────
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
-
-

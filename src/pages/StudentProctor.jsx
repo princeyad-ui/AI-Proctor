@@ -1,169 +1,174 @@
-// src/pages/StudentProctor.jsx
 import React, { useRef, useEffect, useState } from "react";
 import * as faceapi from "face-api.js";
+import "./StudentProctor.css";
 
-const API_BASE = "http://localhost:5000";
+const SERVER = "http://localhost:5000";
+
+// ====== Tuning (same as your Proctor.jsx) ======
 const DETECT_INTERVAL_MS = 700;
 const NO_FACE_THRESHOLD_MS = 4000;
 const MULTI_FACE_CONFIRM_MS = 1200;
+const OBJECT_CONFIRM_MS = 1000;
+const OBJECT_SCORE_THRESHOLD = 0.4;
+
+const SUSPICIOUS_OBJECT_TEXTS = [
+  "cell phone",
+  "cellphone",
+  "mobile phone",
+  "phone",
+  "book",
+  "laptop",
+  "tv",
+  "monitor",
+  "tablet",
+];
+
+const AUDIO_CHECK_MS = 200;
+const AUDIO_THRESHOLD = 0.06;
+const AUDIO_REQUIRED_CONSECUTIVE = 3;
+const AUDIO_COOLDOWN_MS = 10000;
+const TAB_COOLDOWN_MS = 5000;
 
 export default function StudentProctor() {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const intervalRef = useRef(null);
+
+  const streamRef = useRef(null);        // ✅ store camera stream
+  const sessionIdRef = useRef(null);     // ✅ always-latest sessionId
 
   const [sessionId, setSessionId] = useState(null);
   const [running, setRunning] = useState(false);
-  const [camVisible, setCamVisible] = useState(true);
 
   const lastFaceSeenAt = useRef(Date.now());
   const multiFaceSince = useRef(null);
 
-  const streamRef = useRef(null);
-  const mediaRecorderRef = useRef(null);
+  const objectModelRef = useRef(null);
+  const objectSince = useRef(null);
+  const lastObjectType = useRef(null);
+  const objectAlertCooldown = useRef(0);
 
-  const log = (msg) =>
-    console.log(`[StudentProctor] ${new Date().toLocaleTimeString()} — ${msg}`);
+  const [localEvents, setLocalEvents] = useState([]); // alerts for UI
+  const [status, setStatus] = useState("Starting AI proctoring…");
 
-  // ─────────────────────────────────
-  // Load face-api model once
-  // ─────────────────────────────────
+  // audio state
+  const audioRef = useRef({
+    stream: null,
+    audioContext: null,
+    analyser: null,
+    dataArray: null,
+    intervalId: null,
+    consecutiveAbove: 0,
+    cooldown: false,
+  });
+  const [micAllowed, setMicAllowed] = useState(null);
+  const [audioRms, setAudioRms] = useState(0);
+
+  const tabCooldownRef = useRef(false);
+
+  // --- simple logger to console only (no debug UI) ---
+  const appendLog = (t) => {
+    const str = `${new Date().toLocaleTimeString()} — ${t}`;
+    console.log(str);
+  };
+
+  // ========= helper: map backend path -> URL =========
+  function framePathToUrl(path) {
+    if (!path) return null;
+    if (path.startsWith("/")) {
+      return `${SERVER}${path}`;
+    }
+    const idx = path.indexOf("evidence");
+    if (idx >= 0) {
+      const sub = path.substring(idx);
+      return `${SERVER}/${sub.replace(/\\/g, "/")}`;
+    }
+    return null;
+  }
+
+  // ========= Load models (face-api + coco-ssd) once =========
   useEffect(() => {
-    async function loadModel() {
+    async function loadModels() {
+      const MODEL_URL = "/models";
+
       try {
-        log("Loading tinyFaceDetector model from /models");
-        await faceapi.nets.tinyFaceDetector.loadFromUri("/models");
-        log("Model loaded");
+        appendLog("Loading face-api ssdMobilenetv1 (preferred)...");
+        await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
+        appendLog("ssdMobilenetv1 loaded");
+      } catch (e) {
+        appendLog(
+          "ssdMobilenetv1 load failed (will use tiny): " + (e?.message || e)
+        );
+      }
+
+      try {
+        appendLog("Loading tinyFaceDetector (fallback)...");
+        await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+        appendLog("tinyFaceDetector loaded");
+      } catch (e) {
+        appendLog("tinyFaceDetector load failed: " + (e?.message || e));
+      }
+
+      try {
+        if (window.cocoSsd) {
+          appendLog("Using CDN coco-ssd");
+          objectModelRef.current = await window.cocoSsd.load();
+        } else {
+          appendLog("Dynamically importing coco-ssd...");
+          const mod = await import("@tensorflow-models/coco-ssd");
+          objectModelRef.current = await mod.load();
+        }
+        appendLog("coco-ssd loaded");
       } catch (err) {
-        log("Model load failed: " + (err?.message || String(err)));
+        appendLog("coco-ssd load failed: " + (err?.message || err));
+        objectModelRef.current = null;
       }
     }
-    loadModel();
+
+    loadModels();
   }, []);
 
-  // ─────────────────────────────────
-  // Camera + Mic
-  // ─────────────────────────────────
+  // ========= Camera + backend session =========
   async function startCamera() {
-    // ask for both video & audio (audio will be recorded)
     const stream = await navigator.mediaDevices.getUserMedia({
       video: true,
-      audio: true,
+      audio: false,
     });
-    streamRef.current = stream;
+
+    streamRef.current = stream; // ✅ keep reference to stop later
 
     if (videoRef.current) {
       videoRef.current.srcObject = stream;
       await videoRef.current.play();
     }
-    log("Camera + mic stream started");
+    appendLog("Camera started");
   }
 
-  function stopCamera() {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-  }
-
-  // ─────────────────────────────────
-  // Backend proctor session
-  // ─────────────────────────────────
   async function startSession() {
-    const res = await fetch(`${API_BASE}/api/start-session`, {
+    const res = await fetch(`${SERVER}/api/start-session`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: "{}",
     });
     const data = await res.json();
-    if (!data.success) throw new Error("Failed to start proctor session");
-    setSessionId(data.sessionId);
-    log("Session started: " + data.sessionId);
-    return data.sessionId;
+    if (data && data.success) {
+      appendLog("Started session: " + data.sessionId);
+      setSessionId(data.sessionId);
+      sessionIdRef.current = data.sessionId; // ✅ keep latest id
+      return data.sessionId;
+    }
+    throw new Error("Failed to start proctor session");
   }
 
-  async function endSession(currentId) {
-    if (!currentId) return;
-    try {
-      await fetch(`${API_BASE}/api/end-session`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId: currentId }),
-      });
-      log("Session ended: " + currentId);
-    } catch (e) {
-      log("endSession error: " + e.message);
-    }
-  }
-
-  // ─────────────────────────────────
-  // Audio recording → /api/audio
-  // ─────────────────────────────────
-  function startAudioRecorder(activeSessionId) {
-    if (!streamRef.current) {
-      log("No stream for audio recording");
-      return;
-    }
-    if (!window.MediaRecorder) {
-      log("MediaRecorder not supported – audio evidence disabled");
-      return;
-    }
-
-    try {
-      const recorder = new MediaRecorder(streamRef.current, {
-        mimeType: "audio/webm",
-      });
-      mediaRecorderRef.current = recorder;
-
-      recorder.ondataavailable = async (e) => {
-        try {
-          if (!e.data || !e.data.size || !activeSessionId) return;
-          const fd = new FormData();
-          fd.append("sessionId", activeSessionId);
-          fd.append("audio", e.data, `audio_${Date.now()}.webm`);
-          await fetch(`${API_BASE}/api/audio`, {
-            method: "POST",
-            body: fd,
-          });
-          log("Audio chunk uploaded");
-        } catch (err) {
-          log("audio upload error: " + err.message);
-        }
-      };
-
-      recorder.onerror = (e) => {
-        log("MediaRecorder error: " + e.error?.message);
-      };
-
-      // record in 5s chunks
-      recorder.start(5000);
-      log("Audio recorder started");
-    } catch (err) {
-      log("Failed to start MediaRecorder: " + err.message);
-    }
-  }
-
-  function stopAudioRecorder() {
-    const rec = mediaRecorderRef.current;
-    if (rec && rec.state !== "inactive") {
-      rec.stop();
-      log("Audio recorder stopped");
-    }
-    mediaRecorderRef.current = null;
-  }
-
-  // ─────────────────────────────────
-  // Evidence helpers
-  // ─────────────────────────────────
   function captureFrameBlob() {
     return new Promise((resolve) => {
       const video = videoRef.current;
       const canvas = canvasRef.current;
       if (!video || !canvas) return resolve(null);
+
       canvas.width = video.videoWidth || 640;
       canvas.height = video.videoHeight || 480;
+
       const ctx = canvas.getContext("2d");
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.85);
@@ -174,91 +179,224 @@ export default function StudentProctor() {
     type,
     severity = "high",
     details = "",
-    uploadFrame = false
+    uploadFrame = true
   ) {
-    if (!sessionId) return;
+    if (!sessionId) {
+      appendLog("No sessionId - cannot send alert");
+      return null;
+    }
+
+    let thumbnailUrl = null;
     try {
-      let blob = null;
       if (uploadFrame) {
-        blob = await captureFrameBlob();
-      }
-      if (blob) {
-        const fd = new FormData();
-        fd.append("sessionId", sessionId);
-        fd.append("frame", blob, `alert_${type}_${Date.now()}.jpg`);
-        await fetch(`${API_BASE}/api/frame`, {
-          method: "POST",
-          body: fd,
-        });
-        log(`Frame uploaded for ${type}`);
+        const blob = await captureFrameBlob();
+        if (blob) {
+          const fd = new FormData();
+          fd.append("sessionId", sessionId);
+          fd.append("frame", blob, `alert_${type}_${Date.now()}.jpg`);
+
+          const r = await fetch(`${SERVER}/api/frame`, {
+            method: "POST",
+            body: fd,
+          });
+          const fr = await r.json().catch(() => null);
+          if (fr && fr.evidence && fr.evidence.path) {
+            thumbnailUrl = framePathToUrl(fr.evidence.path);
+          }
+        }
       }
 
-      await fetch(`${API_BASE}/api/alerts`, {
+      const res = await fetch(`${SERVER}/api/alerts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId, type, severity, details }),
       });
-      log(`Alert sent: ${type} (${severity}) ${details}`);
+      const jr = await res.json().catch(() => null);
+      appendLog("alert posted: " + JSON.stringify(jr || {}));
+
+      const ev = {
+        id: (jr && jr.event && jr.event.id) || `local-${Date.now()}`,
+        type,
+        severity,
+        details,
+        timestamp: new Date().toISOString(),
+        thumbnailUrl,
+      };
+      setLocalEvents((s) => [ev, ...s].slice(0, 50));
+      return ev;
     } catch (err) {
-      log("sendAlert error: " + err.message);
+      appendLog("sendAlert error: " + (err?.message || err));
+      return null;
     }
   }
 
-  // ─────────────────────────────────
-  // Tab / window switch detection
-  // ─────────────────────────────────
-  useEffect(() => {
-    function handleHidden() {
-      if (document.hidden && sessionId) {
-        sendAlert(
-          "tab-switch",
-          "medium",
-          "Student switched tab / minimized window",
-          true
-        );
-      }
-    }
-    function handleBlur() {
+  // ========= AUDIO monitoring =========
+  async function startAudioMonitoring() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setMicAllowed(true);
+
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      const audioContext = new AudioContext();
+      const source = audioContext.createMediaStreamSource(stream);
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 2048;
+      const dataArray = new Float32Array(analyser.fftSize);
+      source.connect(analyser);
+
+      audioRef.current = {
+        ...audioRef.current,
+        stream,
+        audioContext,
+        analyser,
+        dataArray,
+        consecutiveAbove: 0,
+        cooldown: false,
+      };
+
+      const intervalId = setInterval(() => {
+        try {
+          analyser.getFloatTimeDomainData(dataArray);
+          let sum = 0;
+          for (let i = 0; i < dataArray.length; i++) {
+            sum += dataArray[i] * dataArray[i];
+          }
+          const rms = Math.sqrt(sum / dataArray.length);
+          setAudioRms(rms);
+
+          if (rms > AUDIO_THRESHOLD) {
+            audioRef.current.consecutiveAbove++;
+          } else {
+            audioRef.current.consecutiveAbove = 0;
+          }
+
+          if (
+            audioRef.current.consecutiveAbove >=
+              AUDIO_REQUIRED_CONSECUTIVE &&
+            !audioRef.current.cooldown
+          ) {
+            audioRef.current.cooldown = true;
+            appendLog(`Audio activity flagged (rms=${rms.toFixed(4)})`);
+            sendAlert(
+              "audio_activity",
+              "medium",
+              `rms=${rms.toFixed(4)}`,
+              false
+            );
+            setTimeout(
+              () => (audioRef.current.cooldown = false),
+              AUDIO_COOLDOWN_MS
+            );
+            audioRef.current.consecutiveAbove = 0;
+          }
+        } catch (err) {
+          console.error("audio interval error", err);
+        }
+      }, AUDIO_CHECK_MS);
+
+      audioRef.current.intervalId = intervalId;
+      appendLog("Audio monitoring started");
+    } catch (err) {
+      setMicAllowed(false);
+      appendLog("Mic error: " + (err?.message || err));
       if (sessionId) {
-        sendAlert(
-          "tab-blur",
-          "medium",
-          "Window lost focus (possible tab switch)",
-          true
-        );
+        sendAlert("audio_error", "low", "microphone_denied_or_error", false);
       }
     }
+  }
 
-    window.addEventListener("visibilitychange", handleHidden);
-    window.addEventListener("blur", handleBlur);
+  function stopAudioMonitoring() {
+    try {
+      const cur = audioRef.current;
+      if (cur.intervalId) clearInterval(cur.intervalId);
+      if (cur.audioContext && cur.audioContext.state !== "closed") {
+        cur.audioContext.close().catch(() => {});
+      }
+      if (cur.stream) cur.stream.getTracks().forEach((t) => t.stop());
+      audioRef.current = {
+        stream: null,
+        audioContext: null,
+        analyser: null,
+        dataArray: null,
+        intervalId: null,
+        consecutiveAbove: 0,
+        cooldown: false,
+      };
+      setAudioRms(0);
+      appendLog("Audio monitoring stopped");
+    } catch (e) {
+      console.error("stopAudioMonitoring error", e);
+    }
+  }
 
-    return () => {
-      window.removeEventListener("visibilitychange", handleHidden);
-      window.removeEventListener("blur", handleBlur);
-    };
-  }, [sessionId]);
+  // ✅ Central cleanup for camera + intervals
+  function cleanupMedia() {
+    // stop detection interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
 
-  // ─────────────────────────────────
-  // Detection loop (no-face + multi-face)
-  // ─────────────────────────────────
+    // stop audio
+    stopAudioMonitoring();
+
+    // stop camera tracks
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+
+    // clear video element
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+  }
+
+  // ========= TAB / VISIBILITY events =========
+  function sendTabEvent(reason) {
+    if (!sessionId) return;
+    if (tabCooldownRef.current) return;
+    tabCooldownRef.current = true;
+
+    sendAlert("tab_switch", "low", reason, false);
+    setTimeout(() => {
+      tabCooldownRef.current = false;
+    }, TAB_COOLDOWN_MS);
+  }
+
+  // ========= Detection loop (face + object) =========
   useEffect(() => {
-    let intervalId = null;
-
     async function runDetections() {
       const video = videoRef.current;
-      if (!video || video.readyState !== 4 || !sessionId) return;
+      if (!video || video.readyState !== 4) {
+        appendLog("Video not ready");
+        return;
+      }
 
+      // --- FACE detection ---
       try {
-        const options = new faceapi.TinyFaceDetectorOptions({
-          inputSize: 320,
-          scoreThreshold: 0.45,
-        });
-        const detections = await faceapi.detectAllFaces(video, options);
+        const useSSD = !!faceapi.nets.ssdMobilenetv1.params;
+        let detections = [];
+        if (useSSD) {
+          const options = new faceapi.SsdMobilenetv1Options({
+            minConfidence: 0.45,
+          });
+          detections = await faceapi.detectAllFaces(video, options);
+        } else {
+          const options = new faceapi.TinyFaceDetectorOptions({
+            inputSize: 512,
+            scoreThreshold: 0.3,
+          });
+          detections = await faceapi.detectAllFaces(video, options);
+        }
 
-        // draw boxes
+        // draw boxes (just for debugging; video is hidden anyway)
         try {
           const canvas = canvasRef.current;
-          const displaySize = { width: video.videoWidth, height: video.videoHeight };
+          const displaySize = {
+            width: video.videoWidth,
+            height: video.videoHeight,
+          };
           faceapi.matchDimensions(canvas, displaySize);
           const resized = faceapi.resizeResults(detections, displaySize);
           const ctx = canvas.getContext("2d");
@@ -272,30 +410,26 @@ export default function StudentProctor() {
         } catch (_) {}
 
         const now = Date.now();
-
         if (!detections || detections.length === 0) {
-          // NO FACE
           if (!lastFaceSeenAt.current) lastFaceSeenAt.current = now;
           if (now - lastFaceSeenAt.current > NO_FACE_THRESHOLD_MS) {
             await sendAlert(
               "no-face",
               "high",
-              `No face detected for > ${NO_FACE_THRESHOLD_MS / 1000}s`,
+              `No face for > ${NO_FACE_THRESHOLD_MS / 1000}s`,
               true
             );
-            lastFaceSeenAt.current = now + 2000; // cooldown
+            lastFaceSeenAt.current = now + 2000;
           }
         } else {
           lastFaceSeenAt.current = now;
-
           if (detections.length > 1) {
-            // MULTIPLE FACES
             if (!multiFaceSince.current) multiFaceSince.current = now;
             if (now - multiFaceSince.current > MULTI_FACE_CONFIRM_MS) {
               await sendAlert(
                 "multiple-faces",
                 "high",
-                `Detected ${detections.length} faces in frame`,
+                `Detected ${detections.length} faces`,
                 true
               );
               multiFaceSince.current = null;
@@ -305,120 +439,228 @@ export default function StudentProctor() {
           }
         }
       } catch (err) {
-        log("detection error: " + (err?.message || String(err)));
+        appendLog("Face detection error: " + (err?.message || err));
+      }
+
+      // --- OBJECT detection ---
+      if (objectModelRef.current) {
+        try {
+          const predictions = await objectModelRef.current.detect(video);
+          const suspicious = (predictions || []).filter((p) => {
+            const cls = String(p.class).toLowerCase();
+            const scoreOk = p.score >= OBJECT_SCORE_THRESHOLD;
+            return (
+              scoreOk &&
+              SUSPICIOUS_OBJECT_TEXTS.some((s) => cls.includes(s))
+            );
+          });
+
+          if (suspicious.length > 0) {
+            const now = Date.now();
+            const top = suspicious[0];
+            const objClass = top.class.toLowerCase();
+            if (lastObjectType.current === objClass) {
+              if (!objectSince.current) objectSince.current = now;
+              if (
+                now - objectSince.current > OBJECT_CONFIRM_MS &&
+                now - objectAlertCooldown.current > 4000
+              ) {
+                await sendAlert(
+                  "object-detected",
+                  "high",
+                  `Detected ${objClass} (${top.score.toFixed(2)})`,
+                  true
+                );
+                objectAlertCooldown.current = Date.now();
+                objectSince.current = null;
+                lastObjectType.current = null;
+              }
+            } else {
+              lastObjectType.current = objClass;
+              objectSince.current = Date.now();
+            }
+          } else {
+            lastObjectType.current = null;
+            objectSince.current = null;
+          }
+        } catch (err) {
+          appendLog("Object detection error: " + (err?.message || err));
+        }
       }
     }
 
     if (running && sessionId) {
       runDetections();
-      intervalId = setInterval(runDetections, DETECT_INTERVAL_MS);
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      intervalRef.current = setInterval(runDetections, DETECT_INTERVAL_MS);
+    } else {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
     }
 
     return () => {
-      if (intervalId) clearInterval(intervalId);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
     };
   }, [running, sessionId]);
 
-  // ─────────────────────────────────
-  // Auto-start on mount (for exam)
-  // ─────────────────────────────────
+  // ========= Auto-start on mount, stop on unmount =========
   useEffect(() => {
     let cancelled = false;
-    async function startAll() {
+
+    async function startEverything() {
       try {
+        setStatus("Starting camera & AI proctoring…");
         await startCamera();
         const sid = await startSession();
         if (cancelled) return;
+        setSessionId(sid);
+        sessionIdRef.current = sid;
         setRunning(true);
-        startAudioRecorder(sid);
+        setStatus("AI proctoring is running in the background.");
       } catch (err) {
-        log("startAll error: " + err.message);
+        setStatus(
+          "Could not start proctoring. Please allow camera & mic and refresh."
+        );
       }
     }
-    startAll();
+
+    startEverything();
 
     return () => {
       cancelled = true;
       setRunning(false);
-      stopAudioRecorder();
-      endSession(sessionId);
-      stopCamera();
+      cleanupMedia();             // ✅ stop camera + audio + intervals
+
+      const sid = sessionIdRef.current;
+      if (sid) {
+        fetch(`${SERVER}/api/end-session`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId: sid }),
+        }).catch(() => {});
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ─────────────────────────────────
-  // UI – student only sees camera + toggle
-  // ─────────────────────────────────
+  // ========= audio + tab listeners toggle by "running" =========
+  useEffect(() => {
+    function handleVisibilityChange() {
+      if (document.visibilityState === "hidden")
+        sendTabEvent("visibility_hidden");
+      else sendTabEvent("visibility_visible");
+    }
+    function handleBlur() {
+      sendTabEvent("window_blur");
+    }
+    function handleFocus() {
+      sendTabEvent("window_focus");
+    }
+
+    if (running) {
+      startAudioMonitoring();
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+      window.addEventListener("blur", handleBlur);
+      window.addEventListener("focus", handleFocus);
+    } else {
+      stopAudioMonitoring();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("blur", handleBlur);
+      window.removeEventListener("focus", handleFocus);
+    }
+
+    return () => {
+      stopAudioMonitoring();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("blur", handleBlur);
+      window.removeEventListener("focus", handleFocus);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [running, sessionId]);
+
+  // ========= UI (compact card, for right side of exam) =========
   return (
-    <div style={{ fontSize: 13 }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 6,
-        }}
-      >
-        <span style={{ color: "#16a34a" }}>
-          Monitoring active {running ? "" : "(starting…)"}
-        </span>
-        <button
-          type="button"
-          onClick={() => setCamVisible((v) => !v)}
-          style={{
-            padding: "4px 10px",
-            borderRadius: 6,
-            border: "1px solid #d1d5db",
-            background: "#f3f4f6",
-            cursor: "pointer",
-            fontSize: 12,
-          }}
-        >
-          {camVisible ? "Hide Camera" : "Show Camera"}
-        </button>
+    <div className="sp-shell">
+      <div className="sp-header-row">
+        <div className="sp-badge">
+          <span className="sp-dot" />
+          AI Proctoring Active
+        </div>
+        <div className="sp-status">{status}</div>
       </div>
 
-      <div
-        style={{
-          borderRadius: 10,
-          overflow: "hidden",
-          border: "1px solid #e5e7eb",
-          width: 320,
-          maxWidth: "100%",
-        }}
-      >
-        <div
-          style={{
-            position: "relative",
-            width: "100%",
-            paddingTop: "75%", // 4:3 aspect ratio
-            display: camVisible ? "block" : "none",
-          }}
-        >
-          <video
-            ref={videoRef}
-            autoPlay
-            muted
-            playsInline
-            style={{
-              position: "absolute",
-              inset: 0,
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              background: "#000",
-            }}
-          />
-          <canvas
-            ref={canvasRef}
-            style={{
-              position: "absolute",
-              inset: 0,
-            }}
+      <div className="sp-meta-row">
+        <span>
+          Session:{" "}
+          <strong>{sessionId ? sessionId.slice(0, 8) + "…" : "starting…"}</strong>
+        </span>
+        <span>
+          Mic:{" "}
+          {micAllowed === null
+            ? "Checking…"
+            : micAllowed
+            ? "On"
+            : "Permission denied"}
+        </span>
+      </div>
+
+      <div className="sp-mic-bar">
+        <span className="sp-mic-label">Mic activity</span>
+        <div className="sp-mic-track">
+          <div
+            className="sp-mic-fill"
+            style={{ width: `${Math.min(100, audioRms * 800)}%` }}
           />
         </div>
       </div>
+
+      <div className="sp-section-title">Recent AI alerts</div>
+      <div className="sp-events">
+        {localEvents.length === 0 ? (
+          <div className="sp-event muted">No suspicious activity detected.</div>
+        ) : (
+          localEvents.slice(0, 6).map((ev) => (
+            <div key={ev.id} className="sp-event">
+              {ev.thumbnailUrl ? (
+                <img
+                  src={ev.thumbnailUrl}
+                  alt="thumb"
+                  className="sp-thumb"
+                  onClick={() => window.open(ev.thumbnailUrl, "_blank")}
+                />
+              ) : (
+                <div className="sp-thumb empty">No image</div>
+              )}
+              <div className="sp-event-text">
+                <div className="sp-event-line">
+                  <span className={`sp-type sev-${ev.severity}`}>
+                    {ev.type}
+                  </span>
+                  <span className="sp-time">
+                    {new Date(ev.timestamp).toLocaleTimeString()}
+                  </span>
+                </div>
+                <div className="sp-details">{ev.details}</div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Hidden video + canvas used only for capture/detection */}
+      <video
+        ref={videoRef}
+        autoPlay
+        muted
+        playsInline
+        className="sp-hidden-video"
+      />
+      <canvas ref={canvasRef} className="sp-hidden-canvas" />
     </div>
   );
 }

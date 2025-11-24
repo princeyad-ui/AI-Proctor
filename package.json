@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@tensorflow-models/coco-ssd": "^2.2.2",
+    "@tensorflow-models/coco-ssd": "^2.2.3",
     "@tensorflow/tfjs": "^3.21.0",
     "cors": "^2.8.5",
     "emailjs-com": "^3.2.0",
