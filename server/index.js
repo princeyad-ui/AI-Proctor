@@ -16,16 +16,22 @@ const jwt = require("jsonwebtoken");
 // ─────────────────────────────────────
 // MongoDB Connection
 // ─────────────────────────────────────
+
 const MONGO_URI =
   process.env.MONGO_URI || "mongodb://127.0.0.1:27017/ai_proctor";
 
 mongoose
-  .connect(MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
+  .connect(MONGO_URI)
+  .then(() => {
+    console.log("MongoDB connected");
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
   })
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.error("MongoDB error", err));
+  .catch((err) => {
+    console.error("MongoDB connection error", err);
+    process.exit(1); // stop the app if DB fails
+  });
 
 // ─────────────────────────────────────
 // Admin User Schema + Model
@@ -729,8 +735,8 @@ app.post("/api/exams/:id/send-invite", authMiddleware, async (req, res) => {
         .json({ success: false, message: "Exam has no linkCode" });
     }
 
-    const frontendBase = process.env.FRONTEND_URL || "http://localhost:5173";
-    const examUrl = `${frontendBase}/exam/${exam.linkCode}`;
+   const frontendBase = process.env.FRONTEND_URL || "https://ai-proctor.netlify.app";
+const examUrl = `${frontendBase}/exam/${exam.linkCode}`;
 
     await transporter.sendMail({
       from: process.env.SMTP_USER,
