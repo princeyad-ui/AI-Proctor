@@ -36,6 +36,11 @@ export default function ExamEntry() {
   const micCheckAnimRef = useRef(null);
   const micCheckStartTimeRef = useRef(0);
 
+  // ⬇ screen share
+  const screenStreamRef = useRef(null);
+  const [screenShared, setScreenShared] = useState(false);
+  const [screenShareError, setScreenShareError] = useState("");
+
   // exam session
   const [examSession, setExamSession] = useState(null);
 
@@ -99,6 +104,12 @@ export default function ExamEntry() {
     if (audioContextRef.current) {
       audioContextRef.current.close().catch(() => {});
       audioContextRef.current = null;
+    }
+    // ⬇ stop screen share as well
+    if (screenStreamRef.current) {
+      screenStreamRef.current.getTracks().forEach((t) => t.stop());
+      screenStreamRef.current = null;
+      setScreenShared(false);
     }
   }
 
@@ -225,12 +236,42 @@ export default function ExamEntry() {
     }
   }
 
+  // ⬇ screen share: ask for full-screen share before exam
+  async function handleStartScreenShare() {
+    try {
+      setScreenShareError("");
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: { cursor: "always" },
+        audio: false,
+      });
+      screenStreamRef.current = stream;
+      setScreenShared(true);
+
+      // if user stops sharing manually, update state
+      const [track] = stream.getVideoTracks();
+      if (track) {
+        track.addEventListener("ended", () => {
+          screenStreamRef.current = null;
+          setScreenShared(false);
+        });
+      }
+    } catch (err) {
+      console.error("screen share error", err);
+      setScreenShared(false);
+      setScreenShareError(
+        "Screen sharing was cancelled or blocked. Please allow it to continue."
+      );
+    }
+  }
+
   // ───────────── 3. Step navigation ─────────────
   function handleDetailsNext() {
     if (!studentName || !studentEmail) {
       alert("Please enter your name and email");
       return;
     }
+    localStorage.setItem("studentName", studentName);
+    localStorage.setItem("studentEmail", studentEmail);
     setStep(2);
   }
 
@@ -352,7 +393,10 @@ export default function ExamEntry() {
   // is current question answered?
   let currentAnswered = false;
   const currentVal = answers[currentIndex];
-  if (Array.isArray(currentQuestion.options) && currentQuestion.options.length > 0) {
+  if (
+    Array.isArray(currentQuestion.options) &&
+    currentQuestion.options.length > 0
+  ) {
     currentAnswered = typeof currentVal === "number";
   } else {
     currentAnswered = !!(currentVal && String(currentVal).trim() !== "");
@@ -362,15 +406,16 @@ export default function ExamEntry() {
   async function handleFinishTest(autoByTimer = false) {
     if (!examSession || finished) return;
 
+    // For manual submit, ask confirmation
     if (!autoByTimer) {
       const ok = window.confirm("Are you sure you want to submit the test?");
       if (!ok) return;
     }
 
     setFinished(true);
-    cleanupMedia(); // stop system-check camera/mic if still on
+    cleanupMedia(); // ✅ stop system-check camera/mic & screen share
 
-    // score (for backend)
+    // simple score using correctIndex
     let score = 0;
     questions.forEach((q, idx) => {
       if (typeof q.correctIndex === "number") {
@@ -395,14 +440,30 @@ export default function ExamEntry() {
         }
       );
 
-      if (!res.ok) {
+      if (res.ok) {
+        if (autoByTimer) {
+          alert("Time is over. Your test has been auto-submitted.");
+        } else {
+          alert("Test submitted successfully.");
+        }
+
+        const studentNameSafe =
+          examSession.studentName || studentName || "Student";
+        const examTitleSafe = exam?.title || "Exam";
+
+        navigate(
+          `/thankyou?name=${encodeURIComponent(
+            studentNameSafe
+          )}&exam=${encodeURIComponent(examTitleSafe)}`
+        );
+      } else {
         alert(
-          "Test finished. Backend did not confirm submission (check /api/exam-sessions/:id/complete)."
+          "Test finished (demo). Backend did not confirm submission (check /api/exam-sessions/:id/complete)."
         );
       }
     } catch (err) {
       console.error("finish test error", err);
-      alert("Test finished. Error sending data to server.");
+      alert("Test finished (demo). Error sending data to server.");
     }
   }
 
@@ -554,16 +615,10 @@ export default function ExamEntry() {
             </ul>
 
             <div className="exam-actions-row">
-              <button
-                className="exam-btn-ghost"
-                onClick={() => setStep(1)}
-              >
+              <button className="exam-btn-ghost" onClick={() => setStep(1)}>
                 Back
               </button>
-              <button
-                className="exam-btn-secondary"
-                onClick={runSystemChecks}
-              >
+              <button className="exam-btn-secondary" onClick={runSystemChecks}>
                 Re-run checks
               </button>
               <button
@@ -578,7 +633,7 @@ export default function ExamEntry() {
         </div>
       )}
 
-      {/* STEP 3: Instructions */}
+      {/* STEP 3: Instructions + Screen Share */}
       {step === 3 && (
         <div className="exam-step-wrapper">
           <div className="exam-step-card">
@@ -609,16 +664,47 @@ export default function ExamEntry() {
               </li>
             </ul>
 
-            <div className="exam-actions-row">
+            {/* ⬇ Screen share section */}
+            <div
+              className="exam-info-block"
+              style={{
+                marginTop: 12,
+                paddingTop: 12,
+                borderTop: "1px solid #e5e7eb",
+              }}
+            >
+              <p>
+                <strong>Screen Sharing:</strong> Please share your{" "}
+                <u>entire screen</u> so that your exam activity can be
+                monitored. You can still change tabs, but this will be recorded
+                by the proctoring system.
+              </p>
               <button
-                className="exam-btn-ghost"
-                onClick={() => setStep(2)}
+                type="button"
+                className="exam-btn-secondary"
+                onClick={handleStartScreenShare}
               >
+                {screenShared ? "Screen Sharing On" : "Share Full Screen"}
+              </button>
+              <div className="exam-status-note">
+                {screenShared ? "✅ Screen sharing is active." : "Screen not shared yet."}
+                {screenShareError && (
+                  <>
+                    <br />
+                    <span style={{ color: "#dc2626" }}>{screenShareError}</span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="exam-actions-row">
+              <button className="exam-btn-ghost" onClick={() => setStep(2)}>
                 Back
               </button>
               <button
                 className="exam-btn-primary exam-step-btn"
                 onClick={handleStartTest}
+                disabled={!screenShared} // ⬅ require screen share before starting
               >
                 Start Test
               </button>
@@ -644,8 +730,7 @@ export default function ExamEntry() {
                     <span className="exam-submitted-text">Submitted</span>
                   ) : (
                     <>
-                      Time Left:{" "}
-                      <strong>{formatTime(timeLeftSec)}</strong>
+                      Time Left: <strong>{formatTime(timeLeftSec)}</strong>
                     </>
                   )}
                 </div>
@@ -711,21 +796,21 @@ export default function ExamEntry() {
                   </button>
                 </div>
 
-               <button
-  className="exam-btn-primary exam-test-finish"
-  onClick={() => {
-    handleFinishTest(false);
-    navigate("/thankyou", {
-      state: {
-        studentName,
-        examTitle: exam?.title,
-      },
-    });
-  }}
-  disabled={finished || !currentAnswered}
->
-  Finish Test
-</button>
+                <button
+                  className="exam-btn-primary exam-test-finish"
+                  onClick={() => {
+                    handleFinishTest(false);
+                    navigate("/thankyou", {
+                      state: {
+                        studentName,
+                        examTitle: exam?.title,
+                      },
+                    });
+                  }}
+                  disabled={finished || !currentAnswered}
+                >
+                  Finish Test
+                </button>
               </div>
             </div>
           </div>
@@ -751,7 +836,8 @@ function StatusItem({ label, ok, checking }) {
   return (
     <div className="exam-status-item">
       <span className="exam-status-icon" style={{ color }}>
-        {icon}</span>
+        {icon}
+      </span>
       <span className="exam-status-label" style={{ color }}>
         {label}
       </span>

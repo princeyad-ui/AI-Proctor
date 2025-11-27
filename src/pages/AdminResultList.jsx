@@ -1,7 +1,6 @@
 // src/pages/AdminResultsList.jsx
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "./AdminResultList.css";
 
 const SERVER = "http://localhost:5000";
@@ -61,6 +60,40 @@ export default function AdminResultsList() {
       return { text: "PASS", className: "status-pill pass" };
     }
     return { text: "FAIL", className: "status-pill fail" };
+  }
+
+  // delete one student's exam result
+  async function handleDeleteResult(id) {
+    const ok = window.confirm(
+      "Are you sure you want to delete this student's result?"
+    );
+    if (!ok) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        navigate("/login");
+        return;
+      }
+
+      const res = await fetch(`${SERVER}/api/exam-sessions/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "Failed to delete result");
+      }
+
+      // remove from list
+      setSessions((prev) => prev.filter((s) => s._id !== id));
+    } catch (err) {
+      console.error("delete result error", err);
+      alert(err.message || "Could not delete result");
+    }
   }
 
   if (loading) {
@@ -147,14 +180,33 @@ export default function AdminResultsList() {
                   </div>
 
                   <div>
-  <Link 
-    to={`/admin/result/${s._id}`} 
-    className="btn-link"
-  >
-    View Result
-  </Link>
-</div>
+                    {/* actions on right side */}
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      {/* existing exam result page */}
+                      <Link to={`/admin/result/${s._id}`} className="btn-link">
+                        View Result
+                      </Link>
 
+                  {/* NEW: Proctor Report Button */}
+<button
+  type="button"
+  className="btn-link"
+  onClick={() => navigate(`/admindashboard?sessionId=${s.proctorSessionId || s._id}`)}
+>
+  Proctor Report
+</button>
+
+                      {/* NEW: delete result */}
+                      <button
+                        type="button"
+                        className="btn-link"
+                        style={{ color: "#dc2626" }}
+                        onClick={() => handleDeleteResult(s._id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
                 </div>
               );
             })}

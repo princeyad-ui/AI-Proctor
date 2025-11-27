@@ -20,6 +20,7 @@ import AdminResultList from "./pages/AdminResultList";
 import AdminSessionResult from "./pages/AdminSessionResult";
 
 
+
 const App = () => {
   return (
     <Router>
@@ -42,6 +43,7 @@ const App = () => {
            <Route path="/thankyou" element={<ThankYou />} />
            <Route path="/adminresultlist" element={<AdminResultList />} />
            <Route path="/admin/result/:sessionId" element={<AdminSessionResult />} />
+        
          
            
 

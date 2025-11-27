@@ -279,19 +279,35 @@ app.get("/api/admin/me", authMiddleware, async (req, res) => {
 // ─────────────────────────────────────
 
 // start proctor session
+// start proctor session
 app.post("/api/start-session", (req, res) => {
   const sessionId = uuidv4();
+
+  // NEW: optional student info (for showing name with session)
+  const { studentName, studentEmail } = req.body || {};
+
   SESSIONS[sessionId] = {
     sessionId,
     startedAt: new Date().toISOString(),
+    // store student identity for easier reporting
+    studentName: studentName || "Unknown Student",
+    studentEmail: studentEmail || "",
     events: [],
     evidence: [],
     endedAt: null,
     riskScore: 0,
   };
-  console.log("Session started:", sessionId);
+
+  console.log(
+    "Session started:",
+    sessionId,
+    "for",
+    studentName || "Unknown Student"
+  );
+
   res.json({ success: true, sessionId });
 });
+
 
 // receive frame
 app.post("/api/frame", upload.single("frame"), async (req, res) => {
@@ -488,6 +504,17 @@ app.post("/api/exams", authMiddleware, async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
+// Delete an exam session (admin)
+app.delete("/api/exam-sessions/:id", authMiddleware, async (req, res) => {
+  try {
+    await ExamSession.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    console.error("DELETE /api/exam-sessions/:id error", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
 
 // List exams (admin)
 app.get("/api/exams", authMiddleware, async (req, res) => {

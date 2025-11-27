@@ -25,6 +25,9 @@ export default function AdminDashboard() {
   const evtSourceRef = useRef(null);
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 12;
+  const params = new URLSearchParams(window.location.search);
+const forcedSessionId = params.get("sessionId");
+
 
   // fetch sessions
   async function loadSessions() {
@@ -42,6 +45,18 @@ export default function AdminDashboard() {
       setLoading(false);
     }
   }
+
+useEffect(() => {
+  if (forcedSessionId) {
+    fetch(`${SERVER}/api/report/${forcedSessionId}`)
+      .then(res => res.json())
+      .then(data => {
+        setSelectedSession(data.session || null);
+        setSelectedEvents(data.events || []);
+      })
+      .catch(err => console.error("Error loading forced session:", err));
+  }
+}, [forcedSessionId]);
 
   useEffect(() => {
     loadSessions();
@@ -224,8 +239,15 @@ export default function AdminDashboard() {
                 return (
                   <div className="session-card" key={sess.sessionId}>
                     <div className="card-top">
-                      <div className="session-id">{sess.sessionId}</div>
-                      <div className="risk">Risk: <strong>{sess.riskScore ?? 0}</strong></div>
+                    <div className="session-id">
+  {sess.studentName
+    ? `${sess.studentName} (${sess.sessionId})`
+    : sess.sessionId}
+</div>
+<div className="risk">
+  Risk: <strong>{sess.riskScore ?? 0}</strong>
+</div>
+
                     </div>
 
                     <div className="meta">
@@ -330,11 +352,31 @@ export default function AdminDashboard() {
             </div>
 
             <div className="modal-right">
-              <h3>Session: {selectedSession.sessionId}</h3>
-              <div>Started: {selectedSession.startedAt ? new Date(selectedSession.startedAt).toLocaleString() : "-"}</div>
-              {selectedSession.endedAt && (
-                <div>Ended: {new Date(selectedSession.endedAt).toLocaleString()}</div>
-              )}
+             <h3>
+  Session:{" "}
+  {selectedSession.studentName
+    ? `${selectedSession.studentName} (${selectedSession.sessionId})`
+    : selectedSession.sessionId}
+</h3>
+
+{selectedSession.studentEmail && (
+  <div>Student Email: {selectedSession.studentEmail}</div>
+)}
+
+<div>
+  Started:{" "}
+  {selectedSession.startedAt
+    ? new Date(selectedSession.startedAt).toLocaleString()
+    : "-"}
+</div>
+
+{selectedSession.endedAt && (
+  <div>
+    Ended: {new Date(selectedSession.endedAt).toLocaleString()}
+  </div>
+)}
+
+              
 
               <div style={{ marginTop: 8 }}>
                 <a

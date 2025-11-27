@@ -144,21 +144,24 @@ export default function StudentProctor() {
     appendLog("Camera started");
   }
 
-  async function startSession() {
-    const res = await fetch(`${SERVER}/api/start-session`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: "{}",
-    });
-    const data = await res.json();
-    if (data && data.success) {
-      appendLog("Started session: " + data.sessionId);
-      setSessionId(data.sessionId);
-      sessionIdRef.current = data.sessionId; // ✅ keep latest id
-      return data.sessionId;
-    }
-    throw new Error("Failed to start proctor session");
+ async function startSession() {
+  const studentName = localStorage.getItem("studentName") || "Unknown";
+  const studentEmail = localStorage.getItem("studentEmail") || "";
+
+  const res = await fetch("http://localhost:5000/api/start-session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ studentName, studentEmail }),
+  });
+
+  const data = await res.json();
+  if (data && data.success) {
+    setSessionId(data.sessionId);
+    return data.sessionId;
   }
+  throw new Error("Failed to start session");
+}
+
 
   function captureFrameBlob() {
     return new Promise((resolve) => {
@@ -586,81 +589,25 @@ export default function StudentProctor() {
   // ========= UI (compact card, for right side of exam) =========
   return (
     <div className="sp-shell">
-      <div className="sp-header-row">
-        <div className="sp-badge">
-          <span className="sp-dot" />
-          AI Proctoring Active
-        </div>
-        <div className="sp-status">{status}</div>
+    <div className="sp-header-row">
+      <div className="sp-badge">
+        <span className="sp-dot" />
+        AI Proctoring Active
       </div>
-
-      <div className="sp-meta-row">
-        <span>
-          Session:{" "}
-          <strong>{sessionId ? sessionId.slice(0, 8) + "…" : "starting…"}</strong>
-        </span>
-        <span>
-          Mic:{" "}
-          {micAllowed === null
-            ? "Checking…"
-            : micAllowed
-            ? "On"
-            : "Permission denied"}
-        </span>
+      <div className="sp-status">
+        AI proctoring is running in the background.
       </div>
-
-      <div className="sp-mic-bar">
-        <span className="sp-mic-label">Mic activity</span>
-        <div className="sp-mic-track">
-          <div
-            className="sp-mic-fill"
-            style={{ width: `${Math.min(100, audioRms * 800)}%` }}
-          />
-        </div>
-      </div>
-
-      <div className="sp-section-title">Recent AI alerts</div>
-      <div className="sp-events">
-        {localEvents.length === 0 ? (
-          <div className="sp-event muted">No suspicious activity detected.</div>
-        ) : (
-          localEvents.slice(0, 6).map((ev) => (
-            <div key={ev.id} className="sp-event">
-              {ev.thumbnailUrl ? (
-                <img
-                  src={ev.thumbnailUrl}
-                  alt="thumb"
-                  className="sp-thumb"
-                  onClick={() => window.open(ev.thumbnailUrl, "_blank")}
-                />
-              ) : (
-                <div className="sp-thumb empty">No image</div>
-              )}
-              <div className="sp-event-text">
-                <div className="sp-event-line">
-                  <span className={`sp-type sev-${ev.severity}`}>
-                    {ev.type}
-                  </span>
-                  <span className="sp-time">
-                    {new Date(ev.timestamp).toLocaleTimeString()}
-                  </span>
-                </div>
-                <div className="sp-details">{ev.details}</div>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* Hidden video + canvas used only for capture/detection */}
-      <video
-        ref={videoRef}
-        autoPlay
-        muted
-        playsInline
-        className="sp-hidden-video"
-      />
-      <canvas ref={canvasRef} className="sp-hidden-canvas" />
     </div>
+
+    {/* Hidden video + canvas – used only for detection */}
+    <video
+      ref={videoRef}
+      autoPlay
+      muted
+      playsInline
+      className="sp-hidden-video"
+    />
+    <canvas ref={canvasRef} className="sp-hidden-canvas" />
+  </div>
   );
 }

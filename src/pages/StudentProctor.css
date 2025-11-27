@@ -1,178 +1,47 @@
+/* small bar at top */
 .sp-shell {
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
-  background: #f9fafb;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    Roboto, sans-serif;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  padding: 8px 16px;
 }
 
-/* header row */
 .sp-header-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
 }
 
 .sp-badge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
-  color: #111827;
+  background: #2563eb;
+  color: #ffffff;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .sp-dot {
   width: 8px;
   height: 8px;
   border-radius: 999px;
-  background: #16a34a;
-  box-shadow: 0 0 0 5px rgba(22, 163, 74, 0.25);
+  background: #22c55e;
 }
 
 .sp-status {
-  font-size: 11px;
-  color: #6b7280;
-  text-align: right;
-}
-
-/* meta row */
-.sp-meta-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  font-size: 11px;
-  color: #4b5563;
-}
-
-/* mic bar */
-.sp-mic-bar {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.sp-mic-label {
-  font-size: 11px;
+  font-size: 12px;
   color: #6b7280;
 }
 
-.sp-mic-track {
-  width: 100%;
-  height: 8px;
-  border-radius: 999px;
-  background: #e5e7eb;
-  overflow: hidden;
-}
-
-.sp-mic-fill {
-  height: 100%;
-  border-radius: 999px;
-  background: #4caf50;
-  transition: width 0.12s linear;
-}
-
-/* events */
-.sp-section-title {
-  margin-top: 2px;
-  font-size: 11px;
-  font-weight: 600;
-  color: #374151;
-}
-
-.sp-events {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.sp-event {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.sp-event.muted {
-  font-size: 11px;
-  color: #6b7280;
-}
-
-.sp-thumb {
-  width: 64px;
-  height: 48px;
-  border-radius: 6px;
-  object-fit: cover;
-  border: 1px solid #e5e7eb;
-  cursor: pointer;
-}
-
-.sp-thumb.empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  color: #9ca3af;
-  background: #f3f4f6;
-  cursor: default;
-}
-
-.sp-event-text {
-  flex: 1;
-  min-width: 0;
-}
-
-.sp-event-line {
-  display: flex;
-  justify-content: space-between;
-  gap: 6px;
-}
-
-.sp-type {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: lowercase;
-}
-
-.sp-type.sev-high {
-  color: #dc2626;
-}
-
-.sp-type.sev-medium {
-  color: #b45309;
-}
-
-.sp-type.sev-low {
-  color: #15803d;
-}
-
-.sp-time {
-  font-size: 10px;
-  color: #9ca3af;
-}
-
-.sp-details {
-  font-size: 11px;
-  color: #4b5563;
-}
-
-/* hidden capture elements */
+/* IMPORTANT: completely hide video & canvas but keep them running */
 .sp-hidden-video,
 .sp-hidden-canvas {
-  display: none;
-}
-
-/* small screens */
-@media (max-width: 640px) {
-  .sp-shell {
-    padding: 8px 10px;
-  }
-
-  .sp-thumb {
-    width: 56px;
-    height: 42px;
-  }
+  position: fixed;
+  width: 1px !important;
+  height: 1px !important;
+  opacity: 0 !important;
+  pointer-events: none;
+  left: -9999px;
+  top: -9999px;
+  z-index: -1;
 }
