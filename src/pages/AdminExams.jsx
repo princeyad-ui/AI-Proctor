@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./AdminExams.css";
 
-const SERVER = "http://localhost:5000";
+const SERVER = "https://ai-proctor-2.onrender.com";
 
 export default function AdminExams() {
   const [exams, setExams] = useState([]);

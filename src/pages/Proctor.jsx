@@ -65,12 +65,12 @@ export default function Proctor() {
   function framePathToUrl(path) {
     if (!path) return null;
     if (path.startsWith("/")) {
-      return `http://localhost:5000${path}`;
+      return `https://ai-proctor-2.onrender.com${path}`;
     }
     const idx = path.indexOf("evidence");
     if (idx >= 0) {
       const sub = path.substring(idx);
-      return `http://localhost:5000/${sub.replace(/\\/g, "/")}`;
+      return `https://ai-proctor-2.onrender.com/${sub.replace(/\\/g, "/")}`;
     }
     return null;
   }
@@ -136,7 +136,7 @@ export default function Proctor() {
   // start session on backend
   async function startSession() {
     try {
-      const res = await fetch("http://localhost:5000/api/start-session", {
+      const res = await fetch("https://ai-proctor-2.onrender.com/api/start-session", {
         method: "POST",
         headers: {"Content-Type":"application/json"},
         body: "{}"
@@ -185,7 +185,7 @@ export default function Proctor() {
           const fd = new FormData();
           fd.append("sessionId", sessionId);
           fd.append("frame", blob, `alert_${type}_${Date.now()}.jpg`);
-          const r = await fetch("http://localhost:5000/api/frame", { method: "POST", body: fd });
+          const r = await fetch("https://ai-proctor-2.onrender.com/api/frame", { method: "POST", body: fd });
           const fr = await r.json().catch(()=>null);
           appendLog("frame upload response: " + JSON.stringify(fr));
           if (fr && fr.evidence && fr.evidence.path) {
@@ -194,7 +194,7 @@ export default function Proctor() {
         }
       }
 
-      const res = await fetch("http://localhost:5000/api/alerts", {
+      const res = await fetch("https://ai-proctor-2.onrender.com/api/alerts", {
         method: "POST",
         headers: {"Content-Type":"application/json"},
         body: JSON.stringify({ sessionId, type, severity, details })
@@ -486,7 +486,7 @@ export default function Proctor() {
       stopAudioMonitoring();
 
       if (sessionId) {
-        await fetch("http://localhost:5000/api/end-session", {
+        await fetch("https://ai-proctor-2.onrender.com/api/end-session", {
           method: "POST",
           headers: {"Content-Type":"application/json"},
           body: JSON.stringify({ sessionId })
@@ -532,10 +532,12 @@ export default function Proctor() {
           const payload = JSON.stringify({ sessionId, type: 'navigation', reason: 'beforeunload', timestamp: new Date().toISOString() });
           if (navigator.sendBeacon) {
             const blob = new Blob([payload], { type: 'application/json' });
-            navigator.sendBeacon("http://localhost:5000/api/alerts", blob);
+            navigator.sendBeacon("https://ai-proctor-2.onrender.com/api/alerts"
+, blob);
           } else {
             // fallback - synchronous XHR discouraged; use fetch but may not finish
-            fetch("http://localhost:5000/api/alerts", { method: 'POST', headers: {'Content-Type':'application/json'}, body: payload });
+            fetch("https://ai-proctor-2.onrender.com/api/alerts"
+, { method: 'POST', headers: {'Content-Type':'application/json'}, body: payload });
           }
         } catch (err) {
           console.error("beforeunload send error", err);

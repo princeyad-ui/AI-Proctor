@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from "react";
 import * as faceapi from "face-api.js";
 import "./StudentProctor.css";
 
-const SERVER = "http://localhost:5000";
+const SERVER = "https://ai-proctor-2.onrender.com";
 
 // ====== Tuning (same as your Proctor.jsx) ======
 const DETECT_INTERVAL_MS = 700;
@@ -148,7 +148,7 @@ export default function StudentProctor() {
   const studentName = localStorage.getItem("studentName") || "Unknown";
   const studentEmail = localStorage.getItem("studentEmail") || "";
 
-  const res = await fetch("http://localhost:5000/api/start-session", {
+  const res = await fetch("https://ai-proctor-2.onrender.com/api/start-session", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ studentName, studentEmail }),

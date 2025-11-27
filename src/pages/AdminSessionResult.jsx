@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import "./AdminSessionResult.css";
 
-const SERVER = "http://localhost:5000";
+const SERVER = "https://ai-proctor-2.onrender.com";
 
 export default function AdminSessionResult() {
   const { sessionId } = useParams(); // /admin/result/:sessionId

@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import "./Profile.css"; // optional, if you want custom styles
 
-const SERVER = "http://localhost:5000";
+const SERVER = "https://ai-proctor-2.onrender.com";
 
 export default function Profile() {
   const [admin, setAdmin] = useState(null);

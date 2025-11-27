@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./AdminResultList.css";
 
-const SERVER = "http://localhost:5000";
+const SERVER = "https://ai-proctor-2.onrender.com";
 
 export default function AdminResultsList() {
   const [sessions, setSessions] = useState([]);

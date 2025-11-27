@@ -5,7 +5,8 @@ import { useParams } from "react-router-dom";
 import "./ExamEntry.css";
 import StudentProctor from "./StudentProctor";
 
-const API_BASE = "http://localhost:5000";
+const API_BASE = "https://ai-proctor-2.onrender.com";
+
 
 export default function ExamEntry() {
   const navigate = useNavigate();

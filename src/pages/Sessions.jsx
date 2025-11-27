@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import "./Sessions.css";
 
-const SERVER_BASE = "http://localhost:5000";
+const SERVER_BASE = "https://ai-proctor-2.onrender.com";
 
 /**
  * Helper: convert absolute server file path to a served URL.
