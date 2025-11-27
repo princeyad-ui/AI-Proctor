@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import "./Signup.css";
+import "./SignUp.css";
 
 export default function Signup() {
   const [org, setOrg] = useState("");
