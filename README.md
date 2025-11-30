@@ -116,24 +116,11 @@ AdminUser
 Exam
 
 ExamSession
-<prev>
+
 
 📂 Folder Structure
-project-root/
-│
-├── server/
-│   ├── index.js        # Main backend file (REST API + Proctor Engine)
-│   ├── evidence/       # Auto-created folder storing frames/audio
-│   └── models/         # MongoDB Schemas (Admin, Exam, Session)
-│
-└── client/
-    ├── src/
-    │   ├── pages/      # React Pages (ExamEntry, Dashboard, Profile, etc.)
-    │   ├── components/ # Reusable Components
-    │   ├── styles/     # CSS files
-    │   └── App.jsx
-    └── public/
-</prev>
+<img width="803" height="560" alt="image" src="https://github.com/user-attachments/assets/bfcd7b7c-0254-4173-851c-7fe028789a24" />
+
 
 🔧 Installation & Setup
 1️⃣ Clone the repository
