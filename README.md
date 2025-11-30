@@ -266,7 +266,7 @@ Real-time session grid
 
 Prince Kumar
 AI Proctored Exam Full-Stack Developer
-(Replace with your GitHub / LinkedIn links)
+Contributor - Abhinash Kumar
 
 🤝 Contributing
 
