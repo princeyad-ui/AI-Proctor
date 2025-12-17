@@ -1,8 +1,19 @@
 import React from "react";
 import "./HomePage.css";
+import bg from "../assets/bg.png";
+
+
 
 const HomePage = () => {
   return (
+     <div className="login-page"
+      style={{
+    minHeight: "100vh",
+    backgroundImage: `url(${bg})`,
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    backgroundRepeat: "no-repeat",
+  }}>
     <main className="home">
       {/* HERO */}
       <section className="hero">
@@ -83,6 +94,7 @@ const HomePage = () => {
         </div>
       </footer>
     </main>
+        </div>
   );
 };
 
