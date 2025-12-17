@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import NavBar from "./pages/NavBar";
 import HomePage from "./pages/HomePage";
 import Features from "./pages/Features";
@@ -19,44 +19,49 @@ import ThankYou from "./pages/ThankYou";
 import AdminResultList from "./pages/AdminResultList";
 import AdminSessionResult from "./pages/AdminSessionResult";
 
+// Wrapper so we can use useLocation
+const Layout = ({ children }) => {
+  const location = useLocation();
 
+  // Check if the path starts with /exam/
+  const hideLayout =
+    location.pathname.startsWith("/exam/") ||
+    location.pathname === "/thankyou";
+
+  return (
+    <>
+      {!hideLayout && <NavBar />}
+      {children}
+      {!hideLayout && <Footer />}
+    </>
+  );
+};
 
 const App = () => {
   return (
     <Router>
-      <NavBar />
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/features" element={<Features />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<SignUp />} />
-        <Route path="/proctor" element={<Proctor />} />
-        <Route path="/sessions" element={<Sessions />} />
-        <Route path="/admindashboard" element={<AdminDashboard />} />
+      <Layout>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/features" element={<Features />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<SignUp />} />
+          <Route path="/proctor" element={<Proctor />} />
+          <Route path="/sessions" element={<Sessions />} />
+          <Route path="/admindashboard" element={<AdminDashboard />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/adminexams" element={<AdminExams />} />
+          <Route path="/studentproctor" element={<StudentProctor />} />
+          <Route path="/sendexamemail" element={<SendExamEmail />} />
+          <Route path="/thankyou" element={<ThankYou />} />
+          <Route path="/adminresultlist" element={<AdminResultList />} />
+          <Route path="/admin/result/:sessionId" element={<AdminSessionResult />} />
 
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/adminexams" element={<AdminExams />} />
-         <Route path="/exam/:code" element={<ExamEntry />} />
-           <Route path="/studentproctor" element={<StudentProctor />} />
-           <Route path="/sendexamemail" element={<SendExamEmail />} />
-           <Route path="/thankyou" element={<ThankYou />} />
-           <Route path="/adminresultlist" element={<AdminResultList />} />
-           <Route path="/admin/result/:sessionId" element={<AdminSessionResult />} />
-        
-         
-           
-
-          <Route/>
-  
-
- 
-  
-
-
-  
-      </Routes>
-      <Footer />
+          {/* Exam Entry (NO NAVBAR & FOOTER) */}
+          <Route path="/exam/:code" element={<ExamEntry />} />
+        </Routes>
+      </Layout>
     </Router>
   );
 };
