@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./SignUp.css";
+import bg from "../assets/bg.png"; // ✅ added
 
 export default function Signup() {
   const [org, setOrg] = useState("");
@@ -23,14 +24,16 @@ export default function Signup() {
     }
 
     try {
-      const response = await fetch("https://ai-proctor-2.onrender.com/api/admin/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, phone, password }),
-      });
+      const response = await fetch(
+        "https://ai-proctor-2.onrender.com/api/admin/signup",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, phone, password }),
+        }
+      );
 
       const data = await response.json();
-      console.log("Signup response:", data);
 
       if (!data.success) {
         setError(data.message || "Signup failed");
@@ -39,7 +42,6 @@ export default function Signup() {
 
       localStorage.setItem("token", data.token);
       localStorage.setItem("adminName", data.user.name);
-
       navigate("/profile");
     } catch (err) {
       console.error("Signup error:", err);
@@ -48,7 +50,17 @@ export default function Signup() {
   }
 
   return (
-    <div className="signup-page">
+    /* ✅ SAME BACKGROUND AS SIGN IN */
+    <div
+      className="signup-page"
+       style={{
+                    minHeight: "100vh",
+                    backgroundImage: `url(${bg})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                    backgroundRepeat: "no-repeat",
+                  }}
+    >
       <form className="signup-card" onSubmit={handleSubmit}>
         <h1 className="signup-heading">Sign Up</h1>
 
@@ -116,16 +128,24 @@ export default function Signup() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          <button type="button" className="pwd-toggle" onClick={() => setShowPwd(!showPwd)}>
+          <button
+            type="button"
+            className="pwd-toggle"
+            onClick={() => setShowPwd(!showPwd)}
+          >
             {showPwd ? "🙈" : "👁️"}
           </button>
         </div>
 
-        <button type="submit" className="signup-btn">SIGN UP</button>
+        <button type="submit" className="signup-btn">
+          SIGN UP
+        </button>
 
         <div className="signin-row">
           <span>Have an account?</span>
-          <Link to="/login" className="signin-link">Sign In</Link>
+          <Link to="/login" className="signin-link">
+            Sign In
+          </Link>
         </div>
       </form>
     </div>

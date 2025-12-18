@@ -4,7 +4,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #ffffff;
   padding: 40px;
   box-sizing: border-box;
   font-family: Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -12,7 +11,7 @@
 
 /* Card */
 .login-card {
-  width: 760px;            /* wide layout like screenshot */
+  width: 760px;
   max-width: 95%;
   background: #fff;
   border-radius: 10px;
@@ -26,23 +25,21 @@
   margin: 0 0 30px 0;
   font-size: 28px;
   font-weight: 700;
-  color: #111827; /* dark */
+  color: #111827;
 }
 
 /* Labels */
 .field-label {
   display: block;
-  margin: 8px 0 8px 0;
+  margin: 8px 0;
   color: #374151;
   font-size: 14px;
   font-weight: 600;
 }
 
-/* required star */
 .req {
   color: #ff3b30;
   margin-left: 6px;
-  font-weight: 600;
 }
 
 /* input wrapper */
@@ -50,14 +47,13 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  background: #f8fafc; /* subtle light background */
+  background: #f8fafc;
   border: 1px solid #e6eefb;
   border-radius: 8px;
   padding: 10px 12px;
   margin-bottom: 14px;
 }
 
-/* icon */
 .input-icon {
   font-size: 16px;
   color: #6b7280;
@@ -65,7 +61,6 @@
   text-align: center;
 }
 
-/* input */
 .input-field {
   border: none;
   outline: none;
@@ -73,37 +68,30 @@
   font-size: 15px;
   flex: 1;
   color: #0f172a;
-  padding: 6px 0;
 }
 
-/* password toggle button */
 .pwd-toggle {
   background: transparent;
   border: none;
   cursor: pointer;
   font-size: 18px;
-  padding: 4px;
-  line-height: 1;
 }
 
 /* forgot row */
 .forgot-row {
-  display: flex;
-  justify-content: flex-start;
   margin-bottom: 22px;
 }
 
 .forgot-link {
-  color: #2563eb; /* blue link */
+  color: #2563eb;
   font-size: 13px;
   text-decoration: none;
 }
 
-/* main sign in button */
+/* sign button */
 .sign-btn {
   width: 100%;
-  display: inline-block;
-  background: linear-gradient(180deg,#2f6ef6,#1f4fe0); /* rich blue */
+  background: linear-gradient(180deg,#2f6ef6,#1f4fe0);
   color: #fff;
   padding: 16px;
   border-radius: 10px;
@@ -111,14 +99,9 @@
   font-weight: 700;
   font-size: 15px;
   cursor: pointer;
-  letter-spacing: 0.6px;
   margin-top: 6px;
   box-shadow: 0 6px 18px rgba(47,110,246,0.18);
-  transition: transform .08s ease, box-shadow .08s ease;
 }
-
-.sign-btn:hover { transform: translateY(-1px); }
-.sign-btn:active { transform: translateY(0); box-shadow: 0 4px 10px rgba(47,110,246,0.14); }
 
 /* signup row */
 .signup-row {
@@ -130,23 +113,11 @@
 
 .signup-link {
   color: #2563eb;
-  text-decoration: none;
   margin-left: 6px;
   font-weight: 600;
 }
 
-/* responsive tweaks */
-@media (max-width: 720px) {
-  .login-card { padding: 28px; width: 560px; }
-  .login-heading { font-size: 22px; }
-}
-
-@media (max-width: 420px) {
-  .login-card { padding: 20px; width: 100%; }
-  .input-wrap { padding: 10px; }
-  .sign-btn { padding: 14px; }
-}
-
+/* error */
 .login-error {
   background: #fee2e2;
   color: #b91c1c;
@@ -154,4 +125,13 @@
   border-radius: 8px;
   font-size: 13px;
   margin-bottom: 10px;
+}
+
+/* responsive */
+@media (max-width: 720px) {
+  .login-card { padding: 28px; width: 560px; }
+}
+
+@media (max-width: 420px) {
+  .login-card { padding: 20px; width: 100%; }
 }

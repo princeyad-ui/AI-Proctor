@@ -1,13 +1,14 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./Login.css";
+import bg from "../assets/bg.png";   // ✅ added
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
-  const [error, setError] = useState("");          // ✅ added
-  const [loading, setLoading] = useState(false);   // optional, for UX
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   async function handleSubmit(e) {
@@ -22,11 +23,14 @@ export default function Login() {
     try {
       setLoading(true);
 
-      const response = await fetch("https://ai-proctor-2.onrender.com/api/admin/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+      const response = await fetch(
+        "https://ai-proctor-2.onrender.com/api/admin/login",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        }
+      );
 
       let data;
       try {
@@ -39,11 +43,8 @@ export default function Login() {
         throw new Error(data.message || "Invalid login");
       }
 
-      // ✅ backend sends { success, token, user: {...} }
       localStorage.setItem("token", data.token);
       localStorage.setItem("adminName", data.user.name || "");
-
-      // Redirect to profile page
       navigate("/profile");
     } catch (err) {
       console.error("Login error:", err);
@@ -54,16 +55,21 @@ export default function Login() {
   }
 
   return (
-    <div className="login-page">
+    /* ✅ FULL PAGE BACKGROUND WRAPPER */
+    <div
+      className="login-page"
+        style={{
+              minHeight: "100vh",
+              backgroundImage: `url(${bg})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              backgroundRepeat: "no-repeat",
+            }}
+    >
       <form className="login-card" onSubmit={handleSubmit}>
         <h1 className="login-heading">Sign In</h1>
 
-        {/* ✅ show error if any */}
-        {error && (
-          <div className="login-error">
-            {error}
-          </div>
-        )}
+        {error && <div className="login-error">{error}</div>}
 
         <label className="field-label">
           Email <span className="req">*</span>
@@ -97,7 +103,6 @@ export default function Login() {
             type="button"
             className="pwd-toggle"
             onClick={() => setShowPwd((s) => !s)}
-            aria-label={showPwd ? "Hide password" : "Show password"}
           >
             {showPwd ? "🙈" : "👁️"}
           </button>

@@ -4,7 +4,6 @@
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  background: #ffffff;
   padding: 48px 24px;
   box-sizing: border-box;
   font-family: Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -38,31 +37,22 @@
   font-weight: 600;
 }
 
-/* required star */
-.req {
-  color: #ff3b30;
-  margin-left: 6px;
-  font-weight: 600;
-}
-
 /* input wrapper */
 .input-wrap {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: #f3f7fb; /* subtle background */
+  background: #f3f7fb;
   border: 1px solid #e6eefb;
   border-radius: 8px;
   padding: 12px;
   margin-bottom: 12px;
 }
 
-/* 'light' variant (org input slightly different) */
 .input-wrap.light {
   background: #f8fafc;
 }
 
-/* icon */
 .input-icon {
   font-size: 16px;
   color: #6b7280;
@@ -70,7 +60,6 @@
   text-align: center;
 }
 
-/* input */
 .input-field {
   border: none;
   outline: none;
@@ -78,10 +67,9 @@
   font-size: 15px;
   flex: 1;
   color: #0f172a;
-  padding: 6px 0;
 }
 
-/* phone section (country + number) */
+/* phone */
 .phone-wrap {
   display: flex;
   gap: 12px;
@@ -89,43 +77,29 @@
   margin-bottom: 12px;
 }
 
-/* country select box */
-.country-select select {
+.country-select {
   border-radius: 8px;
   border: 1px solid #e6eefb;
   background: #f8fafc;
   padding: 10px 12px;
   font-size: 14px;
-  cursor: pointer;
-  min-width: 120px;
 }
 
-/* phone input uses same input-wrap style */
-.phone-input { padding: 10px 12px; }
+.phone-input {
+  padding: 10px 12px;
+}
 
-/* password toggle button */
+/* password toggle */
 .pwd-toggle {
   background: transparent;
   border: none;
   cursor: pointer;
   font-size: 18px;
-  padding: 4px;
-  line-height: 1;
 }
 
-/* NO CREDIT CARD text */
-.no-card {
-  text-align: center;
-  margin: 18px 0 16px 0;
-  color: #64748b;
-  font-weight: 600;
-  letter-spacing: 0.6px;
-}
-
-/* signup button styles */
+/* signup button */
 .signup-btn {
   width: 100%;
-  display: inline-block;
   background: linear-gradient(180deg,#2f6ef6,#1f4fe0);
   color: #fff;
   padding: 16px;
@@ -134,14 +108,8 @@
   font-weight: 700;
   font-size: 15px;
   cursor: pointer;
-  letter-spacing: 0.6px;
   margin-top: 6px;
-  box-shadow: 0 6px 18px rgba(47,110,246,0.16);
-  transition: transform .08s ease, box-shadow .08s ease;
 }
-
-.signup-btn:hover { transform: translateY(-1px); }
-.signup-btn:active { transform: translateY(0); box-shadow: 0 4px 10px rgba(47,110,246,0.12); }
 
 /* signin row */
 .signin-row {
@@ -153,7 +121,6 @@
 
 .signin-link {
   color: #2563eb;
-  text-decoration: none;
   margin-left: 6px;
   font-weight: 600;
 }
@@ -165,6 +132,5 @@
 }
 
 @media (max-width: 420px) {
-  .country-select select { min-width: 100px; font-size: 13px; }
   .signup-card { padding: 20px; }
 }

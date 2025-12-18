@@ -1,4 +1,3 @@
-/* Center the whole page */
 .send-email-page {
   display: flex;
   flex-direction: column;
@@ -6,23 +5,21 @@
   padding: 20px;
 }
 
-/* Back button aligned to top-left */
+/* Back button */
 .back-btn {
   align-self: flex-start;
   margin-bottom: 15px;
   color: white;
-  background:#2563eb;
+  background: #2563eb;
   border: none;
 }
 
-/* STOP the default hover from overwriting it */
 .back-btn:hover {
-  background: #2563eb; /* slightly darker blue */
-  color: white !important; /* force white text */
+  background: #2563eb;
+  color: white !important;
 }
 
-
-/* Panel centered and clean */
+/* Panel */
 .send-email-panel {
   width: 100%;
   max-width: 600px;
@@ -31,13 +28,11 @@
   box-sizing: border-box;
 }
 
-/* Error message centered */
 .center-error {
   max-width: 600px;
   text-align: center;
 }
 
-/* Form spacing tweaks */
 .send-email-panel .form-vertical {
   gap: 10px;
 }

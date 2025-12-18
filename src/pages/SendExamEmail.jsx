@@ -2,8 +2,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import emailjs from "emailjs-com";
-import "./AdminExams.css";        // reusing your existing styles
-import "./SendExamEmail.css";     // NEW css file
+import "./AdminExams.css";
+import "./SendExamEmail.css";
+import bg from "../assets/bg.png"; // ✅ added
 
 const SERVICE_ID = "service_3hq7cc6";
 const TEMPLATE_ID = "template_uwkztub";
@@ -62,7 +63,17 @@ export default function SendExamEmail() {
   }
 
   return (
-    <div className="send-email-page">
+    /* ✅ FULL PAGE BACKGROUND */
+    <div
+      className="send-email-page"
+    style={{
+                        minHeight: "100vh",
+                        backgroundImage: `url(${bg})`,
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                        backgroundRepeat: "no-repeat",
+                      }}
+    >
       <button className="secondary-btn back-btn" onClick={() => navigate(-1)}>
         ← Back
       </button>

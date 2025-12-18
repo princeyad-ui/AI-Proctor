@@ -1,26 +1,43 @@
-import React from 'react'
+import React from "react";
+import { Link, useLocation } from "react-router-dom";
 import "./NavBar.css";
-import { Link } from "react-router-dom";
-
 
 const NavBar = () => {
+  const location = useLocation();
+
   return (
-     <nav className="navbar">
-      
-    <Link to="/" className="logo">
+    <nav className="navbar">
+      {/* Logo */}
+      <Link to="/" className="logo">
         AI-Proctor
       </Link>
 
       {/* Menu */}
       <ul className="nav-links">
-        <li><Link to="/features">Features</Link></li>
-        <li><Link to="/contact">Contact</Link></li>
-        
-        <li><Link to="/login" className="login-btn">Login</Link></li>
+        <li>
+          <Link
+            to="/features"
+            className={location.pathname === "/features" ? "active" : ""}
+          >
+            Features
+          </Link>
+        </li>
+        <li>
+          <Link
+            to="/contact"
+            className={location.pathname === "/contact" ? "active" : ""}
+          >
+            Contact
+          </Link>
+        </li>
+        <li>
+          <Link to="/login" className="login-btn">
+            Login
+          </Link>
+        </li>
       </ul>
-
     </nav>
-  )
-}
+  );
+};
 
-export default NavBar
+export default NavBar;
