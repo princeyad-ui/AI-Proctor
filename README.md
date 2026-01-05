@@ -132,12 +132,6 @@ Install dependencies:
 cd server
 npm install
 
-Create .env file:
-MONGO_URI=mongodb://127.0.0.1:27017/ai_proctor
-JWT_SECRET=your-secret-key
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-app-password
-FRONTEND_URL=http://localhost:5173
 
 Run backend:
 node index.js
