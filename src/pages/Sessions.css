@@ -1,4 +1,8 @@
 /* Sessions.css */
+.sessions-bg {
+  width: 100%;
+}
+
 
 .sessions-page { padding: 28px 0; max-width: 1100px; margin: 0 auto; }
 .sessions-header { display:flex; justify-content:space-between; align-items:center; margin-bottom: 14px; gap:12px; }

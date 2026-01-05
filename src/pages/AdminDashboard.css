@@ -1,4 +1,34 @@
-.admin-dashboard { padding: 18px; font-family: Arial, sans-serif; }
+.admin-dashboard {
+  position: relative;
+  padding: 18px;
+  font-family: Arial, sans-serif;
+  min-height: 100vh;
+  z-index: 1;
+}
+
+/* Full background */
+.admin-dashboard::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+
+  background-image:
+    linear-gradient(
+      rgba(255, 255, 255, 0.75),
+      rgba(255, 255, 255, 0.75)
+    ),
+    url("../assets/bg.png");
+
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* allow scrolling */
+
+
+
 .admin-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
 .admin-controls { display:flex; gap:8px; align-items:center; }
 .btn { padding: 8px 10px; border-radius:6px; background:#f0f3f7; border:1px solid #d7e0ea; cursor:pointer; }

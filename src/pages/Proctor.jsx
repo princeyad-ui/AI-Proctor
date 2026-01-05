@@ -407,7 +407,8 @@ export default function Proctor() {
   }, [running, sessionId]);
 
   return (
-    <div style={{ padding: 20, fontFamily: "system-ui, sans-serif" }}>
+    <div style={{ 
+        padding: 20, fontFamily: "system-ui, sans-serif" }}>
       <div style={{ float: "right", marginBottom: 20 }}>
         <button className="btn1" onClick={() => navigate("/admindashboard")} style={{ marginRight: 10 }}>Admin Dashboard</button>
         <button className="btn1" onClick={() => navigate("/sessions")}>Sessions</button>

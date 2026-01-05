@@ -1,7 +1,8 @@
 // src/pages/Profile.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import "./Profile.css"; // optional, if you want custom styles
+import "./Profile.css"; 
+import bg from "../assets/bg.png"; 
 
 const SERVER = "https://ai-proctor-2.onrender.com";
 
@@ -56,7 +57,15 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <div className="profile-page">
+      <div
+        className="profile-page"
+        style={{
+          backgroundImage: `url(${bg})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          minHeight: "100vh",
+        }}
+      >
         <div className="profile-card">Loading profile...</div>
       </div>
     );
@@ -64,7 +73,15 @@ export default function Profile() {
 
   if (error) {
     return (
-      <div className="profile-page">
+      <div
+        className="profile-page"
+        style={{
+          backgroundImage: `url(${bg})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          minHeight: "100vh",
+        }}
+      >
         <div className="profile-card">
           <h2>Profile</h2>
           <p style={{ color: "#b91c1c" }}>{error}</p>
@@ -78,7 +95,15 @@ export default function Profile() {
 
   if (!admin) {
     return (
-      <div className="profile-page">
+      <div
+        className="profile-page"
+        style={{
+          backgroundImage: `url(${bg})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          minHeight: "100vh",
+        }}
+      >
         <div className="profile-card">
           <h2>No profile data</h2>
         </div>
@@ -87,7 +112,15 @@ export default function Profile() {
   }
 
   return (
-    <div className="profile-page">
+    <div
+      className="profile-page"
+      style={{
+        backgroundImage: `url(${bg})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        minHeight: "100vh",
+      }}
+    >
       <div className="profile-card">
         <h1 className="profile-title">Admin Profile</h1>
 
@@ -111,7 +144,6 @@ export default function Profile() {
             Conduct / Schedule Exams
           </Link>
 
-          {/* NEW: View results button */}
           <Link to="/adminresultlist" className="secondary-btn">
             View Exam Results
           </Link>

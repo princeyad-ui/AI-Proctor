@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { useParams } from "react-router-dom";
 import "./ExamEntry.css";
 import StudentProctor from "./StudentProctor";
+import bg from "../assets/bg.png";
+
 
 const API_BASE = "https://ai-proctor-2.onrender.com";
 // 🔽 new: use a reliable 1MB test file for internet speed
@@ -12,6 +14,7 @@ const SPEED_TEST_URL = "https://speed.hetzner.de/1MB.bin";
 export default function ExamEntry() {
   const navigate = useNavigate();
   const { code } = useParams(); // /exam/:code
+  
 
   const [exam, setExam] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -487,11 +490,27 @@ export default function ExamEntry() {
     totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
 
   // ───────────── Render ─────────────
-  if (loading) return <div className="exam-loading">Loading exam…</div>;
-  if (!exam) return <div className="exam-loading">Exam not found</div>;
+ if (loading) return <div className="exam-loading">Loading exam…</div>;
+if (!exam) return <div className="exam-loading">Exam not found</div>;
+
 
   return (
-    <div className="exam-page">
+  <>
+  <div
+    className="exam-bg"
+    style={{
+    backgroundImage: `
+      linear-gradient(
+        rgba(255, 255, 255, 0.6),
+        rgba(255, 255, 255, 0.6)
+      ),
+      url(${bg})
+    `,
+  }}
+  />
+  
+    <div className="exam-page"
+      >
       {/* Top header */}
       <div className="exam-topbar">
         <div>
@@ -826,6 +845,10 @@ export default function ExamEntry() {
         </div>
       )}
     </div>
+      
+</>
+    
+    
   );
 }
 
@@ -851,5 +874,6 @@ function StatusItem({ label, ok, checking }) {
         {label}
       </span>
     </div>
+    
   );
 }
