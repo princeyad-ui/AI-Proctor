@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import "./StudentEvidence.css";
 
-const SERVER = "https://ai-proctor-2.onrender.com";
+const SERVER = "https://ai-proctor-05.onrender.com";
 
 export default function StudentEvidence() {
   const { sessionId } = useParams(); // /student-evidence/:sessionId

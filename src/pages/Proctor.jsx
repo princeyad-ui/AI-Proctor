@@ -56,12 +56,12 @@ export default function Proctor() {
   const framePathToUrl = (path) => {
     if (!path) return null;
     if (path.startsWith("http")) return path;
-    if (path.startsWith("/")) return `https://ai-proctor-1.onrender.com${path}`;
+    if (path.startsWith("/")) return `https://ai-proctor-05.onrender.com${path}`;
     const evidenceIdx = path.indexOf("evidence");
     if (evidenceIdx >= 0) {
-      return `https://ai-proctor-1.onrender.com/${path.substring(evidenceIdx).replace(/\\/g, "/")}`;
+      return `https://ai-proctor-05.onrender.com/${path.substring(evidenceIdx).replace(/\\/g, "/")}`;
     }
-    return `https://ai-proctor-1.onrender.com/${path.replace(/\\/g, "/")}`;
+    return `https://ai-proctor-05.onrender.com/${path.replace(/\\/g, "/")}`;
   };
 
   // Load Models
@@ -108,7 +108,7 @@ export default function Proctor() {
 
   // Start Session
   const startSession = async () => {
-    const res = await fetch("https://ai-proctor-1.onrender.com/api/start-session", {
+    const res = await fetch("https://ai-proctor-05.onrender.com/api/start-session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: "{}"
@@ -148,7 +148,7 @@ export default function Proctor() {
         fd.append("sessionId", sessionId);
         fd.append("frame", blob, `${type}_${Date.now()}.jpg`);
         try {
-          const r = await fetch("https://ai-proctor-1.onrender.com/api/frame", { method: "POST", body: fd });
+          const r = await fetch("https://ai-proctor-05.onrender.com/api/frame", { method: "POST", body: fd });
           const res = await r.json();
           if (res?.evidence?.path) {
             thumbnailUrl = framePathToUrl(res.evidence.path);
@@ -158,7 +158,7 @@ export default function Proctor() {
     }
 
     try {
-      await fetch("https://ai-proctor-1.onrender.com/api/alerts", {
+      await fetch("https://ai-proctor-05.onrender.com/api/alerts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId, type, severity, details })
@@ -373,7 +373,7 @@ export default function Proctor() {
 
     if (sessionId) {
       try {
-        await fetch("https://ai-proctor-1.onrender.com/api/end-session", {
+        await fetch("https://ai-proctor-05.onrender.com/api/end-session", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sessionId })

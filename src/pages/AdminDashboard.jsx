@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef ,  } from "react";
 import "./AdminDashboard.css";
 import { useNavigate } from "react-router-dom";
 
-const SERVER = "https://ai-proctor-1.onrender.com";
+const SERVER = "https://ai-proctor-05.onrender.com";
 
 /**
  * AdminDashboard
