@@ -4,7 +4,7 @@ import { useNavigate, Link } from "react-router-dom";
 import "./Profile.css"; 
 import bg from "../assets/bg.png"; 
 
-const SERVER = "https://ai-proctor-2.onrender.com";
+const SERVER = "https://ai-proctor-1.onrender.com";
 
 export default function Profile() {
   const [admin, setAdmin] = useState(null);

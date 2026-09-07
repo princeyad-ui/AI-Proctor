@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef ,  } from "react";
 import "./AdminDashboard.css";
 import { useNavigate } from "react-router-dom";
 
-const SERVER = "https://ai-proctor-2.onrender.com";
+const SERVER = "https://ai-proctor-1.onrender.com";
 
 /**
  * AdminDashboard
@@ -20,8 +20,8 @@ export default function AdminDashboard() {
   const [selectedSession, setSelectedSession] = useState(null);
   const [selectedEvents, setSelectedEvents] = useState([]);
   const [filterText, setFilterText] = useState("");
-  const [filterStatus, setFilterStatus] = useState("all"); // all / active / ended
-  const [liveAlerts, setLiveAlerts] = useState([]); // realtime feed
+  const [filterStatus, setFilterStatus] = useState("all"); 
+  const [liveAlerts, setLiveAlerts] = useState([]); 
   const evtSourceRef = useRef(null);
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 12;

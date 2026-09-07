@@ -11,7 +11,7 @@
   min-height: 100vh;
   width: 100vw;
 
-  background-image: url("../assets/bg.png"); /* same bg image */
+  background-image: url("../assets/bg.png"); 
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -60,7 +60,7 @@
   color: #6b7280;
 }
 
-/* table-like layout */
+
 .results-table {
   border-radius: 10px;
   border: 1px solid #e5e7eb;
@@ -101,7 +101,7 @@
   color: #6b7280;
 }
 
-/* status pills */
+
 .status-pill {
   padding: 3px 8px;
   border-radius: 999px;
@@ -124,7 +124,7 @@
   color: #374151;
 }
 
-/* buttons */
+
 .btn-primary,
 .btn-secondary,
 .btn-link {
@@ -159,7 +159,7 @@
   color: #6b7280;
 }
 
-/* small screens */
+
 @media (max-width: 800px) {
   .results-row {
     grid-template-columns: 1.6fr 1.2fr 0.7fr 0.8fr;

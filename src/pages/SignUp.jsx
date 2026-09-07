@@ -25,7 +25,7 @@ export default function Signup() {
 
     try {
       const response = await fetch(
-        "https://ai-proctor-2.onrender.com/api/admin/signup",
+        "https://ai-proctor-1.onrender.com/api/admin/signup",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

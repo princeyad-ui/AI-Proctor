@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./AdminExams.css";
 
-const SERVER = "https://ai-proctor-2.onrender.com";
+const SERVER = "https://ai-proctor-1.onrender.com";
 
 export default function AdminExams() {
   const [exams, setExams] = useState([]);
@@ -293,9 +293,9 @@ export default function AdminExams() {
       ? `${window.location.origin}/exam/${selectedExam.linkCode}`
       : null;
 
-  // ───────────────────────────
+  
   // RENDER UI
-  // ───────────────────────────
+  
 
   return (
     <div className="admin-exams-page">
@@ -415,7 +415,7 @@ export default function AdminExams() {
                       type="button"
                       className="small-danger-btn"
                       onClick={(e) => {
-                        e.stopPropagation(); // prevent selecting exam
+                        e.stopPropagation(); 
                         handleDeleteExam(ex._id);
                       }}
                     >

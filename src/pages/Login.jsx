@@ -24,7 +24,7 @@ export default function Login() {
       setLoading(true);
 
       const response = await fetch(
-        "https://ai-proctor-2.onrender.com/api/admin/login",
+        "https://ai-proctor-1.onrender.com/api/admin/login",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

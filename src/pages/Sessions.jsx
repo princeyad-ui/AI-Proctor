@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import "./Sessions.css";
 import bg from "../assets/bg.png";
 
-const SERVER_BASE = "https://ai-proctor-2.onrender.com";
+const SERVER_BASE = "https://ai-proctor-1.onrender.com";
 
 /**
  * Helper: convert absolute server file path to a served URL.

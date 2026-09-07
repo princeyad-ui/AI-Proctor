@@ -7,7 +7,7 @@ import StudentProctor from "./StudentProctor";
 import bg from "../assets/bg.png";
 
 
-const API_BASE = "https://ai-proctor-2.onrender.com";
+const API_BASE = "https://ai-proctor-1.onrender.com";
 // 🔽 new: use a reliable 1MB test file for internet speed
 const SPEED_TEST_URL = "https://speed.hetzner.de/1MB.bin";
 

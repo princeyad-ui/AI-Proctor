@@ -1,4 +1,4 @@
-/* ========= Page & Layout ========= */
+/*  Page & Layout  */
 
 .admin-exams-page {
   position: relative;
@@ -76,7 +76,7 @@
   }
 }
 
-/* ========= Panels / Cards ========= */
+/* Panels / Cards  */
 
 .panel {
   background: #ffffff;
@@ -100,13 +100,13 @@
   gap: 8px;
 }
 
-/* muted / helper text */
+/* muted  helper text */
 .muted {
   font-size: 13px;
   color: #6b7280;
 }
 
-/* ========= Form (left) ========= */
+/*  Form (left)  */
 
 .form-vertical {
   display: flex;
@@ -155,7 +155,7 @@
   flex-wrap: wrap;
 }
 
-/* ========= Buttons ========= */
+/*  Buttons  */
 
 .primary-btn {
   padding: 8px 14px;
@@ -215,7 +215,7 @@
   margin-top: 10px;
 }
 
-/* ========= Existing exams list ========= */
+/*  Existing exams list  */
 
 .exam-list {
   list-style: none;
@@ -255,7 +255,7 @@
   color: #6b7280;
 }
 
-/* ========= Question builder ========= */
+/*  Question builder  */
 
 .questions-scroll {
   margin-top: 8px;
